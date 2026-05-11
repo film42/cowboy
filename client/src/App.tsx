@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { LobbyState, PlayerId } from "./types/game";
+import type { LobbyState } from "./types/game";
 import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { GameView } from "./components/GameView";

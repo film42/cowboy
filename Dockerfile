@@ -21,8 +21,6 @@ WORKDIR /app
 COPY --from=backend /app/target/release/cowboy ./
 COPY --from=frontend /app/client/dist ./client/dist/
 
-ENV LIVEKIT_API_KEY=devkey
-ENV LIVEKIT_API_SECRET=secret
 ENV LIVEKIT_URL=ws://localhost:7880
 
 EXPOSE 3000
