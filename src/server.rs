@@ -26,6 +26,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/lobby", post(create_lobby))
         .route("/api/lobby/{code}", get(get_lobby))
         .route("/api/lobby/{code}/join", post(join_lobby))
+        .route("/api/lobby/{code}/leave", post(leave_lobby))
         .route("/ws/{code}", get(ws_upgrade))
         .layer(CorsLayer::permissive())
         .with_state(state)
@@ -108,6 +109,33 @@ async fn join_lobby(
                         player_id,
                         session_token,
                     }))
+                }
+                Err(e) => Err((StatusCode::BAD_REQUEST, e)),
+            }
+        }
+        None => Err((StatusCode::NOT_FOUND, "Lobby not found".to_string())),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct LeaveLobbyRequest {
+    pub player_id: PlayerId,
+}
+
+async fn leave_lobby(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+    Json(req): Json<LeaveLobbyRequest>,
+) -> impl IntoResponse {
+    let lobbies = state.lobbies.read().await;
+    match lobbies.get(&code) {
+        Some(lobby) => {
+            let mut lobby = lobby.write().await;
+            match lobby.remove_player(req.player_id) {
+                Ok(()) => {
+                    let state = lobby.lobby_state();
+                    let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+                    Ok(StatusCode::OK)
                 }
                 Err(e) => Err((StatusCode::BAD_REQUEST, e)),
             }

@@ -107,7 +107,14 @@ function App() {
     }
   };
 
-  const handleLeave = () => {
+  const handleLeave = async () => {
+    if (session) {
+      await fetch(`/api/lobby/${session.lobbyCode}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: session.playerId }),
+      }).catch(() => {});
+    }
     setInitialLobbyState(null);
     clearSession();
   };
