@@ -8,6 +8,8 @@ import type {
   PlayerId,
 } from "../types/game";
 import { CardDisplay } from "./CardDisplay";
+import { MediaView } from "./MediaView";
+import type { LiveKitState } from "../hooks/useLiveKit";
 
 interface GameViewProps {
   gameState: PlayerGameState;
@@ -16,6 +18,7 @@ interface GameViewProps {
   send: (msg: ClientMessage) => void;
   clearEvents: () => void;
   isHost: boolean;
+  livekit: LiveKitState;
 }
 
 function sendAction(send: (msg: ClientMessage) => void, action: object) {
@@ -23,7 +26,6 @@ function sendAction(send: (msg: ClientMessage) => void, action: object) {
 }
 
 // --- Player Profile Card (reused across scenes) ---
-// This is where video will eventually go
 
 function PlayerProfile({
   player,
@@ -31,6 +33,8 @@ function PlayerProfile({
   size = "medium",
   glow,
   label,
+  videoTrack,
+  audioTrack,
   children,
 }: {
   player: PlayerPublicState;
@@ -38,13 +42,29 @@ function PlayerProfile({
   size?: "small" | "medium" | "large";
   glow?: "gold" | "red" | "green" | "accent";
   label?: string;
+  videoTrack?: MediaStreamTrack | null;
+  audioTrack?: MediaStreamTrack | null;
   children?: React.ReactNode;
 }) {
+  const hasVideo = !!videoTrack;
+
   return (
     <div className={`profile profile-${size} ${glow ? `profile-glow-${glow}` : ""} ${player.is_eliminated ? "profile-dead" : ""}`}>
-      {/* This avatar area will become a video feed */}
-      <div className="profile-avatar">
-        <span className="profile-initial">{player.name[0]}</span>
+      <div className={`profile-avatar ${hasVideo ? "profile-avatar-video" : ""}`}>
+        {hasVideo ? (
+          <MediaView
+            videoTrack={videoTrack ?? null}
+            audioTrack={isYou ? null : (audioTrack ?? null)}
+            muted={isYou}
+            className="profile-video-feed"
+          />
+        ) : (
+          <span className="profile-initial">{player.name[0]}</span>
+        )}
+        {/* Play remote audio even without video */}
+        {!hasVideo && !isYou && audioTrack && (
+          <MediaView videoTrack={null} audioTrack={audioTrack} />
+        )}
       </div>
       <div className="profile-info">
         <div className="profile-name">
@@ -88,6 +108,7 @@ export function GameView({
   send,
   clearEvents,
   isHost,
+  livekit,
 }: GameViewProps) {
   const [announcement, setAnnouncement] = useState<string | null>(null);
   const [announcementSub, setAnnouncementSub] = useState<string | null>(null);
@@ -104,10 +125,29 @@ export function GameView({
     gameState.players.find((p) => p.id === id);
   const getPlayerName = (id: PlayerId) => getPlayer(id)?.name || "Unknown";
 
+  // Get media tracks for a player
+  const getMedia = (id: PlayerId) => {
+    if (id === playerId) {
+      return livekit.localMedia;
+    }
+    return livekit.participants.get(id) ?? { audioTrack: null, videoTrack: null };
+  };
+
+  // Wrapper that auto-injects media tracks into PlayerProfile
+  function P(props: Omit<Parameters<typeof PlayerProfile>[0], "videoTrack" | "audioTrack">) {
+    const media = getMedia(props.player.id);
+    return <PlayerProfile {...props} videoTrack={media.videoTrack} audioTrack={media.audioTrack} />;
+  }
+
   // Reset vote state when phase changes away from cowboy_vote
   useEffect(() => {
     if (phase !== "cowboy_vote") {
       setCowboyVoted(false);
+    }
+    // Clear stale announcements when a new round starts
+    if (phase === "normal_turn" || phase === "dealer_turn" || phase === "cowboy_vote") {
+      setAnnouncement(null);
+      setAnnouncementSub(null);
     }
   }, [phase]);
 
@@ -220,18 +260,34 @@ export function GameView({
         <span className="round-number">Round {gameState.round_number}</span>
         {gameState.is_cowboy_round && <span className="cowboy-badge">🤠 COWBOY</span>}
         <span className="alive-count">{aliveLabel}</span>
-        {isHost && (
+        <div className="round-bar-controls">
           <button
-            className="btn-end-game"
-            onClick={() => {
-              if (window.confirm("End the game and return to lobby?")) {
-                send({ type: "EndGame" });
-              }
-            }}
+            className={`btn-media ${livekit.isMuted ? "btn-media-off" : ""}`}
+            onClick={livekit.toggleMute}
+            title={livekit.isMuted ? "Unmute" : "Mute"}
           >
-            End
+            {livekit.isMuted ? "🔇" : "🎤"}
           </button>
-        )}
+          <button
+            className={`btn-media ${livekit.isVideoOff ? "btn-media-off" : ""}`}
+            onClick={livekit.toggleVideo}
+            title={livekit.isVideoOff ? "Turn on camera" : "Turn off camera"}
+          >
+            {livekit.isVideoOff ? "📷" : "📹"}
+          </button>
+          {isHost && (
+            <button
+              className="btn-end-game"
+              onClick={() => {
+                if (window.confirm("End the game and return to lobby?")) {
+                  send({ type: "EndGame" });
+                }
+              }}
+            >
+              End
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Player strip - always visible at top */}
@@ -334,7 +390,7 @@ export function GameView({
           <div className="trade-stage">
             {/* Your card and profile */}
             <div className="trade-side trade-you">
-              <PlayerProfile player={myPlayer} isYou={true} size="large" glow="gold" />
+              <P player={myPlayer} isYou={true} size="large" glow="gold" />
               <CardDisplay card={gameState.your_card} size="large" highlight />
             </div>
 
@@ -344,7 +400,7 @@ export function GameView({
 
             {/* Target player */}
             <div className="trade-side">
-              <PlayerProfile player={target} isYou={false} size="large" glow="accent" />
+              <P player={target} isYou={false} size="large" glow="accent" />
               <CardDisplay card={null} faceDown size="large" />
             </div>
           </div>
@@ -374,7 +430,7 @@ export function GameView({
           <div className="scene-label scene-label-alert">Trade Incoming!</div>
           <div className="trade-stage">
             <div className="trade-side">
-              <PlayerProfile player={actorPlayer} isYou={false} size="large" glow="red" label="wants your card" />
+              <P player={actorPlayer} isYou={false} size="large" glow="red" label="wants your card" />
               <CardDisplay card={null} faceDown size="large" />
             </div>
 
@@ -383,7 +439,7 @@ export function GameView({
             </div>
 
             <div className="trade-side trade-you">
-              <PlayerProfile player={myPlayer} isYou={true} size="large" glow="gold" />
+              <P player={myPlayer} isYou={true} size="large" glow="gold" />
               <CardDisplay card={gameState.your_card} size="large" highlight />
             </div>
           </div>
@@ -419,11 +475,11 @@ export function GameView({
         <div className="scene-label">{actorPlayer.name}'s Turn</div>
         <div className="trade-stage">
           <div className="trade-side">
-            <PlayerProfile player={actorPlayer} isYou={actorPlayer.id === playerId} size="large" glow="accent" label="deciding..." />
+            <P player={actorPlayer} isYou={actorPlayer.id === playerId} size="large" glow="accent" label="deciding..." />
           </div>
           <div className="trade-vs"><span>→</span></div>
           <div className="trade-side">
-            <PlayerProfile player={nextPlayer} isYou={nextPlayer.id === playerId} size="large" />
+            <P player={nextPlayer} isYou={nextPlayer.id === playerId} size="large" />
           </div>
         </div>
 
@@ -451,7 +507,7 @@ export function GameView({
           <div className="scene-label">You Are the Dealer</div>
           <div className="dealer-stage">
             <div className="dealer-you">
-              <PlayerProfile player={myPlayer} isYou={true} size="large" glow="gold" label="Dealer" />
+              <P player={myPlayer} isYou={true} size="large" glow="gold" label="Dealer" />
               <CardDisplay card={gameState.your_card} size="large" highlight />
             </div>
             <div className="dealer-deck">
@@ -485,7 +541,7 @@ export function GameView({
         <div className="scene-label">{dealerPlayer.name} is the Dealer</div>
         <div className="dealer-stage">
           <div className="dealer-you">
-            <PlayerProfile player={dealerPlayer} isYou={false} size="large" glow="accent" label="Dealer" />
+            <P player={dealerPlayer} isYou={false} size="large" glow="accent" label="Dealer" />
           </div>
           <div className="dealer-deck">
             <div className="deck-label">The Deck</div>
@@ -604,7 +660,7 @@ export function GameView({
                     key={pid}
                     className={`showdown-player ${isLoser ? "showdown-loser" : "showdown-safe"}`}
                   >
-                    <PlayerProfile
+                    <P
                       player={p}
                       isYou={pid === playerId}
                       size="medium"
@@ -669,7 +725,7 @@ export function GameView({
           {winner?.id === playerId ? "You Win!" : `${winner?.name || "Someone"} Wins!`}
         </div>
         {winner && (
-          <PlayerProfile player={winner} isYou={winner.id === playerId} size="large" glow="gold" />
+          <P player={winner} isYou={winner.id === playerId} size="large" glow="gold" />
         )}
         <div className="gameover-rounds">
           {gameState.round_number} rounds played

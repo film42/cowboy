@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { LobbyState } from "./types/game";
+import type { LobbyState, PlayerId } from "./types/game";
 import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { GameView } from "./components/GameView";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useSession } from "./hooks/useSession";
+import { useLiveKit } from "./hooks/useLiveKit";
 
 function App() {
   const { session, saveSession, clearSession } = useSession();
@@ -31,6 +32,18 @@ function App() {
 
   const currentPlayerId = playerId ?? session?.playerId ?? null;
   const effectiveLobbyState = lobbyState ?? initialLobbyState;
+
+  // Find the current player's name for LiveKit
+  const currentPlayerName = effectiveLobbyState?.players.find(
+    (p) => p.id === currentPlayerId
+  )?.name ?? null;
+
+  // Connect to LiveKit when we're in a lobby
+  const livekit = useLiveKit(
+    session?.lobbyCode ?? null,
+    currentPlayerId,
+    currentPlayerName
+  );
 
   // Clear initialLobbyState once WS delivers real data
   useEffect(() => {
@@ -143,6 +156,7 @@ function App() {
           send={send}
           clearEvents={clearEvents}
           isHost={effectiveLobbyState?.host_id === currentPlayerId}
+          livekit={livekit}
         />
         {error && (
           <div className="error-toast" onClick={clearError}>
@@ -164,6 +178,7 @@ function App() {
           lobbyState={effectiveLobbyState}
           playerId={currentPlayerId}
           send={send}
+          livekit={livekit}
         />
         <button className="btn btn-ghost leave-btn" onClick={handleLeave}>
           Leave Lobby

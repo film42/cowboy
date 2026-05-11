@@ -399,6 +399,8 @@ input.code-input {
   padding: 0;
   max-width: 100%;
   gap: 0;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* Round bar */
@@ -431,6 +433,42 @@ input.code-input {
   font-size: 14px;
   font-weight: 600;
   color: var(--green);
+}
+
+.round-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-media {
+  font-size: 16px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-media-off {
+  opacity: 0.5;
+}
+
+.lobby-media-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+}
+
+.lobby-media-controls .btn-media {
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--bg-surface);
 }
 
 .btn-end-game {
@@ -573,6 +611,21 @@ input.code-input {
   height: 72px;
 }
 
+.profile-avatar-video {
+  overflow: hidden;
+}
+
+.profile-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.media-video {
+  display: block;
+}
+
 .profile-initial {
   font-size: 24px;
   font-weight: 800;
@@ -653,7 +706,10 @@ input.code-input {
   max-width: 480px;
   margin: 0 auto;
   padding: 16px;
+  padding-bottom: 0;
   animation: sceneIn 0.3s ease;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 @keyframes sceneIn {
@@ -690,7 +746,13 @@ input.code-input {
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  margin-top: 20px;
+  margin-top: auto;
+  padding-top: 16px;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(transparent, var(--bg) 20%);
+  padding-bottom: 16px;
 }
 
 .btn-accent {

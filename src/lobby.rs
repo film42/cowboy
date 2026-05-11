@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 
 use crate::game::Game;
 use crate::player::PlayerId;
@@ -74,9 +74,7 @@ pub enum ServerMessage {
     /// Game state update for a specific player (their hand, etc.).
     GameState { state: PlayerGameState },
     /// Game events for animation (trade proposed, cowboy triggered, etc.).
-    GameEvents {
-        events: Vec<crate::game::GameEvent>,
-    },
+    GameEvents { events: Vec<crate::game::GameEvent> },
     /// Error message.
     Error { message: String },
     /// Welcome message with session info on connect/reconnect.
@@ -231,11 +229,7 @@ impl Lobby {
     }
 
     /// Transfer host to another player.
-    pub fn transfer_host(
-        &mut self,
-        from_id: PlayerId,
-        to_id: PlayerId,
-    ) -> Result<(), String> {
+    pub fn transfer_host(&mut self, from_id: PlayerId, to_id: PlayerId) -> Result<(), String> {
         if self.host_id != from_id {
             return Err("Only the host can transfer host".to_string());
         }
@@ -264,8 +258,7 @@ impl Lobby {
             return Err("Only the host can start the game".to_string());
         }
 
-        let connected: Vec<&LobbyPlayer> =
-            self.players.iter().filter(|p| p.is_connected).collect();
+        let connected: Vec<&LobbyPlayer> = self.players.iter().filter(|p| p.is_connected).collect();
         if connected.len() < 2 {
             return Err("Need at least 2 connected players".to_string());
         }
@@ -348,11 +341,7 @@ impl Lobby {
                 // Only show revealed cards during showdown/round_end for active (non-exempted) players
                 let revealed = match &game.phase {
                     crate::game::Phase::RoundEnd | crate::game::Phase::GameOver { .. } => {
-                        let p_idx = game
-                            .players
-                            .iter()
-                            .position(|pp| pp.id == p.id)
-                            .unwrap();
+                        let p_idx = game.players.iter().position(|pp| pp.id == p.id).unwrap();
                         if !game.exempted.contains(&p_idx) {
                             p.hand
                         } else {
@@ -397,19 +386,11 @@ impl Lobby {
             .map(|p| p.name.clone())
             .unwrap_or_else(|| "Unknown".to_string());
 
-        let round_count = self
-            .game
-            .as_ref()
-            .map(|g| g.round_number)
-            .unwrap_or(0);
+        let round_count = self.game.as_ref().map(|g| g.round_number).unwrap_or(0);
 
         self.game_history.push(GameResult {
             game_number: self.game_count,
-            player_count: self
-                .game
-                .as_ref()
-                .map(|g| g.players.len())
-                .unwrap_or(0),
+            player_count: self.game.as_ref().map(|g| g.players.len()).unwrap_or(0),
             round_count,
             winner_name,
         });

@@ -1,13 +1,16 @@
 import { useState } from "react";
 import type { ClientMessage, LobbyState, PlayerId } from "../types/game";
+import type { LiveKitState } from "../hooks/useLiveKit";
+import { MediaView } from "./MediaView";
 
 interface LobbyProps {
   lobbyState: LobbyState;
   playerId: PlayerId;
   send: (msg: ClientMessage) => void;
+  livekit: LiveKitState;
 }
 
-export function Lobby({ lobbyState, playerId, send }: LobbyProps) {
+export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
   const [lives, setLives] = useState(3);
   const [blockers, setBlockers] = useState(1);
   const [exemptions, setExemptions] = useState(1);
@@ -39,6 +42,23 @@ export function Lobby({ lobbyState, playerId, send }: LobbyProps) {
           <span className="copy-hint">tap to copy</span>
         </button>
       </div>
+
+      {livekit.connected && (
+        <div className="lobby-media-controls">
+          <button
+            className={`btn-media ${livekit.isMuted ? "btn-media-off" : ""}`}
+            onClick={livekit.toggleMute}
+          >
+            {livekit.isMuted ? "🔇 Muted" : "🎤 Mic On"}
+          </button>
+          <button
+            className={`btn-media ${livekit.isVideoOff ? "btn-media-off" : ""}`}
+            onClick={livekit.toggleVideo}
+          >
+            {livekit.isVideoOff ? "📷 Video Off" : "📹 Video On"}
+          </button>
+        </div>
+      )}
 
       {lobbyState.game_history.length > 0 && (
         <div className="last-winner-banner">
@@ -149,6 +169,11 @@ export function Lobby({ lobbyState, playerId, send }: LobbyProps) {
           ))}
         </div>
       )}
+
+      {/* Play remote audio in lobby */}
+      {Array.from(livekit.participants.entries()).map(([pid, media]) => (
+        <MediaView key={pid} videoTrack={null} audioTrack={media.audioTrack} />
+      ))}
     </div>
   );
 }

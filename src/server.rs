@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
+use axum::Json;
+use axum::Router;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Path, Query, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
-use axum::Json;
-use axum::Router;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, warn};
 
 use crate::game::Phase;
@@ -19,15 +20,23 @@ use crate::player::PlayerId;
 #[derive(Clone)]
 pub struct AppState {
     pub lobbies: LobbyStore,
+    pub livekit_api_key: String,
+    pub livekit_api_secret: String,
+    pub livekit_url: String,
 }
 
 pub fn create_router(state: AppState) -> Router {
+    let spa_fallback =
+        ServeDir::new("./client/dist").fallback(ServeFile::new("./client/dist/index.html"));
+
     Router::new()
         .route("/api/lobby", post(create_lobby))
         .route("/api/lobby/{code}", get(get_lobby))
         .route("/api/lobby/{code}/join", post(join_lobby))
         .route("/api/lobby/{code}/leave", post(leave_lobby))
+        .route("/api/livekit/token", post(get_livekit_token))
         .route("/ws/{code}", get(ws_upgrade))
+        .fallback_service(spa_fallback)
         .layer(CorsLayer::permissive())
         .with_state(state)
 }
@@ -66,10 +75,7 @@ async fn create_lobby(
     })
 }
 
-async fn get_lobby(
-    State(state): State<AppState>,
-    Path(code): Path<String>,
-) -> impl IntoResponse {
+async fn get_lobby(State(state): State<AppState>, Path(code): Path<String>) -> impl IntoResponse {
     let lobbies = state.lobbies.read().await;
     match lobbies.get(&code) {
         Some(lobby) => {
@@ -144,6 +150,71 @@ async fn leave_lobby(
     }
 }
 
+// --- LiveKit Token ---
+
+#[derive(Deserialize)]
+pub struct LivekitTokenRequest {
+    pub lobby_code: String,
+    pub player_name: String,
+    pub player_id: PlayerId,
+}
+
+#[derive(Serialize)]
+pub struct LivekitTokenResponse {
+    pub token: String,
+    pub url: String,
+}
+
+async fn get_livekit_token(
+    State(state): State<AppState>,
+    Json(req): Json<LivekitTokenRequest>,
+) -> impl IntoResponse {
+    // Verify the lobby exists and player is in it
+    let lobbies = state.lobbies.read().await;
+    match lobbies.get(&req.lobby_code) {
+        Some(lobby) => {
+            let lobby = lobby.read().await;
+            let in_lobby = lobby.players.iter().any(|p| p.id == req.player_id);
+            if !in_lobby {
+                return Err((StatusCode::FORBIDDEN, "Not in this lobby".to_string()));
+            }
+        }
+        None => return Err((StatusCode::NOT_FOUND, "Lobby not found".to_string())),
+    }
+
+    // Room name = lobby code
+    let room_name = format!("cowboy-{}", req.lobby_code);
+    let identity = format!("player-{}", req.player_id);
+
+    let grants = livekit_api::access_token::VideoGrants {
+        room_join: true,
+        room: room_name,
+        can_publish: true,
+        can_subscribe: true,
+        ..Default::default()
+    };
+
+    let token = livekit_api::access_token::AccessToken::with_api_key(
+        &state.livekit_api_key,
+        &state.livekit_api_secret,
+    )
+    .with_identity(&identity)
+    .with_name(&req.player_name)
+    .with_grants(grants)
+    .to_jwt();
+
+    match token {
+        Ok(jwt) => Ok(Json(LivekitTokenResponse {
+            token: jwt,
+            url: state.livekit_url.clone(),
+        })),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to generate token: {e}"),
+        )),
+    }
+}
+
 // --- WebSocket ---
 
 #[derive(Deserialize)]
@@ -213,9 +284,8 @@ async fn handle_ws(
 
         // If game is active, send current game state
         if let Some(game_state) = lobby.player_game_state(player_id) {
-            if let Ok(msg) = serde_json::to_string(&ServerMessage::GameState {
-                state: game_state,
-            }) {
+            if let Ok(msg) = serde_json::to_string(&ServerMessage::GameState { state: game_state })
+            {
                 let _ = ws_tx.send(Message::Text(msg.into())).await;
             }
         }
@@ -252,9 +322,9 @@ async fn handle_ws(
             if matches!(msg, ServerMessage::GameEvents { .. }) {
                 let lobby = forward_lobby.read().await;
                 if let Some(game_state) = lobby.player_game_state(forward_player_id) {
-                    if let Ok(text) = serde_json::to_string(&ServerMessage::GameState {
-                        state: game_state,
-                    }) {
+                    if let Ok(text) =
+                        serde_json::to_string(&ServerMessage::GameState { state: game_state })
+                    {
                         if ws_tx.send(Message::Text(text.into())).await.is_err() {
                             break;
                         }
@@ -273,12 +343,7 @@ async fn handle_ws(
                     let text_str: &str = &text;
                     match serde_json::from_str::<ClientMessage>(text_str) {
                         Ok(client_msg) => {
-                            handle_client_message(
-                                &recv_lobby,
-                                player_id,
-                                client_msg,
-                            )
-                            .await;
+                            handle_client_message(&recv_lobby, player_id, client_msg).await;
                         }
                         Err(e) => {
                             warn!("Invalid message from player {player_id}: {e}");
@@ -396,9 +461,7 @@ async fn handle_client_message(
                     let in_cowboy = matches!(game.phase, Phase::CowboyVote { .. });
 
                     // Broadcast events
-                    let _ = lobby_guard
-                        .tx
-                        .send(ServerMessage::GameEvents { events });
+                    let _ = lobby_guard.tx.send(ServerMessage::GameEvents { events });
 
                     // Lobby state update (game_active = true)
                     let state = lobby_guard.lobby_state();
@@ -434,10 +497,7 @@ async fn handle_client_message(
                     // If all cowboy votes are in, resolve immediately
                     if game.all_cowboy_votes_in() {
                         info!("All cowboy votes received, resolving immediately");
-                        if game
-                            .act(0, crate::game::Action::ResolveCowboyVote)
-                            .is_ok()
-                        {
+                        if game.act(0, crate::game::Action::ResolveCowboyVote).is_ok() {
                             events.extend(game.take_events());
                         }
                     }
@@ -451,9 +511,7 @@ async fn handle_client_message(
                     let in_cowboy = matches!(game.phase, Phase::CowboyVote { .. });
 
                     // Broadcast events
-                    let _ = lobby_guard
-                        .tx
-                        .send(ServerMessage::GameEvents { events });
+                    let _ = lobby_guard.tx.send(ServerMessage::GameEvents { events });
 
                     if game_over {
                         if let Some(wid) = winner_id {
@@ -489,22 +547,18 @@ async fn handle_client_message(
             }
         }
 
-        ClientMessage::EndGame => {
-            match lobby_guard.end_game(player_id) {
-                Ok(()) => {
-                    info!("Game ended early by host in lobby {}", lobby_guard.code);
-                    let state = lobby_guard.lobby_state();
-                    let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
-                }
-                Err(e) => {
-                    let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
-                }
+        ClientMessage::EndGame => match lobby_guard.end_game(player_id) {
+            Ok(()) => {
+                info!("Game ended early by host in lobby {}", lobby_guard.code);
+                let state = lobby_guard.lobby_state();
+                let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
             }
-        }
+            Err(e) => {
+                let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
+            }
+        },
 
-        ClientMessage::KickPlayer {
-            player_id: kick_id,
-        } => {
+        ClientMessage::KickPlayer { player_id: kick_id } => {
             if lobby_guard.host_id != player_id {
                 let _ = lobby_guard.tx.send(ServerMessage::Error {
                     message: "Only the host can kick players".to_string(),
