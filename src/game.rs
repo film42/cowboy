@@ -63,6 +63,7 @@ pub enum Phase {
 
 /// Events emitted by the game engine for the frontend to animate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum GameEvent {
     GameStarted {
         dealer_id: PlayerId,
@@ -792,6 +793,15 @@ impl Game {
 
     pub fn alive_count(&self) -> usize {
         self.players.iter().filter(|p| p.is_alive()).count()
+    }
+
+    /// Check if all alive players have submitted their cowboy vote.
+    pub fn all_cowboy_votes_in(&self) -> bool {
+        if let Phase::CowboyVote { votes } = &self.phase {
+            votes.len() == self.alive_order.len()
+        } else {
+            false
+        }
     }
 }
 

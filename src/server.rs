@@ -288,12 +288,70 @@ async fn handle_ws(
     info!("Player {player_id} disconnected");
 }
 
+/// After processing a game action, check if we entered cowboy vote phase
+/// and spawn a timer to auto-resolve after 5 seconds.
+fn maybe_spawn_cowboy_timer(lobby_arc: &Arc<RwLock<crate::lobby::Lobby>>) {
+    let lobby_clone = lobby_arc.clone();
+    // We check the phase inside the spawned task after acquiring the lock
+    tokio::spawn(async move {
+        // Small delay to let the current lock release
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+        // Check if we're actually in cowboy vote phase
+        {
+            let lobby = lobby_clone.read().await;
+            let in_cowboy_vote = lobby
+                .game
+                .as_ref()
+                .is_some_and(|g| matches!(g.phase, Phase::CowboyVote { .. }));
+            if !in_cowboy_vote {
+                return;
+            }
+        }
+
+        info!("Cowboy vote timer started (30 seconds)");
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+
+        // Resolve the vote
+        let mut lobby = lobby_clone.write().await;
+
+        // Check phase and resolve without holding a sub-borrow across broadcast
+        let should_resolve = lobby
+            .game
+            .as_ref()
+            .is_some_and(|g| matches!(g.phase, Phase::CowboyVote { .. }));
+
+        if !should_resolve {
+            return;
+        }
+
+        info!("Cowboy vote timer expired, auto-resolving");
+        let game = lobby.game.as_mut().unwrap();
+        if game.act(0, crate::game::Action::ResolveCowboyVote).is_ok() {
+            let events = game.take_events();
+            let game_over_winner = match &game.phase {
+                Phase::GameOver { winner } => *winner,
+                _ => None,
+            };
+
+            // Drop the game borrow before broadcasting
+            let _ = lobby.tx.send(ServerMessage::GameEvents { events });
+
+            if let Some(wid) = game_over_winner {
+                lobby.record_game_result(wid);
+                let state = lobby.lobby_state();
+                let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+            }
+        }
+    });
+}
+
 async fn handle_client_message(
     lobby: &Arc<RwLock<crate::lobby::Lobby>>,
     player_id: PlayerId,
     msg: ClientMessage,
 ) {
-    let mut lobby = lobby.write().await;
+    let mut lobby_guard = lobby.write().await;
 
     match msg {
         ClientMessage::StartGame {
@@ -301,32 +359,40 @@ async fn handle_client_message(
             blocker_tokens,
             exemption_tokens,
         } => {
-            match lobby.start_game(player_id, lives, blocker_tokens, exemption_tokens) {
+            match lobby_guard.start_game(player_id, lives, blocker_tokens, exemption_tokens) {
                 Ok(()) => {
-                    info!("Game started in lobby {}", lobby.code);
-                    let game = lobby.game.as_mut().unwrap();
+                    info!("Game started in lobby {}", lobby_guard.code);
+                    let game = lobby_guard.game.as_mut().unwrap();
                     let events = game.take_events();
 
+                    let in_cowboy = matches!(game.phase, Phase::CowboyVote { .. });
+
                     // Broadcast events
-                    let _ = lobby
+                    let _ = lobby_guard
                         .tx
                         .send(ServerMessage::GameEvents { events });
 
                     // Lobby state update (game_active = true)
-                    let state = lobby.lobby_state();
-                    let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+                    let state = lobby_guard.lobby_state();
+                    let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
+
+                    if in_cowboy {
+                        drop(lobby_guard);
+                        maybe_spawn_cowboy_timer(lobby);
+                        return;
+                    }
                 }
                 Err(e) => {
-                    let _ = lobby.tx.send(ServerMessage::Error { message: e });
+                    let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
                 }
             }
         }
 
         ClientMessage::GameAction { action } => {
-            let game = match lobby.game.as_mut() {
+            let game = match lobby_guard.game.as_mut() {
                 Some(g) => g,
                 None => {
-                    let _ = lobby.tx.send(ServerMessage::Error {
+                    let _ = lobby_guard.tx.send(ServerMessage::Error {
                         message: "No active game".to_string(),
                     });
                     return;
@@ -335,31 +401,48 @@ async fn handle_client_message(
 
             match game.act(player_id, action) {
                 Ok(()) => {
-                    let events = game.take_events();
+                    let mut events = game.take_events();
 
-                    // Check if game ended
+                    // If all cowboy votes are in, resolve immediately
+                    if game.all_cowboy_votes_in() {
+                        info!("All cowboy votes received, resolving immediately");
+                        if game
+                            .act(0, crate::game::Action::ResolveCowboyVote)
+                            .is_ok()
+                        {
+                            events.extend(game.take_events());
+                        }
+                    }
+
                     let game_over = matches!(game.phase, Phase::GameOver { .. });
                     let winner_id = if let Phase::GameOver { winner } = &game.phase {
                         *winner
                     } else {
                         None
                     };
+                    let in_cowboy = matches!(game.phase, Phase::CowboyVote { .. });
 
                     // Broadcast events
-                    let _ = lobby
+                    let _ = lobby_guard
                         .tx
                         .send(ServerMessage::GameEvents { events });
 
                     if game_over {
                         if let Some(wid) = winner_id {
-                            lobby.record_game_result(wid);
-                            let state = lobby.lobby_state();
-                            let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+                            lobby_guard.record_game_result(wid);
+                            let state = lobby_guard.lobby_state();
+                            let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
                         }
+                    }
+
+                    if in_cowboy {
+                        drop(lobby_guard);
+                        maybe_spawn_cowboy_timer(lobby);
+                        return;
                     }
                 }
                 Err(e) => {
-                    let _ = lobby.tx.send(ServerMessage::Error {
+                    let _ = lobby_guard.tx.send(ServerMessage::Error {
                         message: e.to_string(),
                     });
                 }
@@ -367,13 +450,26 @@ async fn handle_client_message(
         }
 
         ClientMessage::TransferHost { to_player_id } => {
-            match lobby.transfer_host(player_id, to_player_id) {
+            match lobby_guard.transfer_host(player_id, to_player_id) {
                 Ok(()) => {
-                    let state = lobby.lobby_state();
-                    let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+                    let state = lobby_guard.lobby_state();
+                    let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
                 }
                 Err(e) => {
-                    let _ = lobby.tx.send(ServerMessage::Error { message: e });
+                    let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
+                }
+            }
+        }
+
+        ClientMessage::EndGame => {
+            match lobby_guard.end_game(player_id) {
+                Ok(()) => {
+                    info!("Game ended early by host in lobby {}", lobby_guard.code);
+                    let state = lobby_guard.lobby_state();
+                    let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
+                }
+                Err(e) => {
+                    let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
                 }
             }
         }
@@ -381,19 +477,19 @@ async fn handle_client_message(
         ClientMessage::KickPlayer {
             player_id: kick_id,
         } => {
-            if lobby.host_id != player_id {
-                let _ = lobby.tx.send(ServerMessage::Error {
+            if lobby_guard.host_id != player_id {
+                let _ = lobby_guard.tx.send(ServerMessage::Error {
                     message: "Only the host can kick players".to_string(),
                 });
                 return;
             }
-            match lobby.remove_player(kick_id) {
+            match lobby_guard.remove_player(kick_id) {
                 Ok(()) => {
-                    let state = lobby.lobby_state();
-                    let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+                    let state = lobby_guard.lobby_state();
+                    let _ = lobby_guard.tx.send(ServerMessage::LobbyUpdate { state });
                 }
                 Err(e) => {
-                    let _ = lobby.tx.send(ServerMessage::Error { message: e });
+                    let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
                 }
             }
         }

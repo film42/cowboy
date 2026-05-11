@@ -135,6 +135,8 @@ pub enum ClientMessage {
     TransferHost { to_player_id: PlayerId },
     /// Kick a player (host only).
     KickPlayer { player_id: PlayerId },
+    /// End the game early and return to lobby (host only).
+    EndGame,
 }
 
 pub struct Lobby {
@@ -286,6 +288,18 @@ impl Lobby {
 
         self.game_count += 1;
         self.game = Some(game);
+        Ok(())
+    }
+
+    /// End the current game early (host only).
+    pub fn end_game(&mut self, host_id: PlayerId) -> Result<(), String> {
+        if self.host_id != host_id {
+            return Err("Only the host can end the game".to_string());
+        }
+        if self.game.is_none() {
+            return Err("No active game".to_string());
+        }
+        self.game = None;
         Ok(())
     }
 
