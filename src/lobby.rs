@@ -77,6 +77,8 @@ pub enum ServerMessage {
     GameEvents { events: Vec<crate::game::GameEvent> },
     /// Error message.
     Error { message: String },
+    /// Lobby has been closed by the host.
+    LobbyClosed,
     /// Welcome message with session info on connect/reconnect.
     Welcome {
         player_id: PlayerId,
@@ -135,6 +137,8 @@ pub enum ClientMessage {
     KickPlayer { player_id: PlayerId },
     /// End the game early and return to lobby (host only).
     EndGame,
+    /// End the lobby entirely, kick everyone (host only).
+    EndLobby,
 }
 
 pub struct Lobby {

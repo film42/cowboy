@@ -1069,7 +1069,12 @@ input.code-input {
   text-align: center; padding: 3px; font-size: 12px; font-weight: 600; z-index: 200;
 }
 
-.leave-btn { margin: 16px auto; }
+.lobby-footer-btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px auto;
+}
 
 @keyframes slideUp {
   from { transform: translateX(-50%) translateY(16px); opacity: 0; }

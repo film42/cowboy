@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 interface MediaViewProps {
   videoTrack: MediaStreamTrack | null;
   audioTrack: MediaStreamTrack | null;
-  muted?: boolean; // Mute audio playback (for local preview)
+  muted?: boolean;
   className?: string;
 }
 
@@ -45,9 +45,8 @@ export function MediaView({
           className={`media-video ${className}`}
         />
       )}
-      {audioTrack && !muted && (
-        <audio ref={audioRef} autoPlay />
-      )}
+      {/* Always keep audio element mounted to avoid playback interruption */}
+      <audio ref={audioRef} autoPlay muted={muted} style={{ display: "none" }} />
     </>
   );
 }

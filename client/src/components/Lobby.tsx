@@ -86,10 +86,6 @@ export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
                       <span>{p.name[0]}</span>
                     </div>
                   )}
-                  {/* Play audio even without video */}
-                  {!media.videoTrack && !isYou && media.audioTrack && (
-                    <MediaView videoTrack={null} audioTrack={media.audioTrack} />
-                  )}
                 </div>
                 <div className="lobby-player-info">
                   <span className="lobby-player-name">

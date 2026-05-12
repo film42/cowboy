@@ -101,6 +101,9 @@ export function useWebSocket(
         case "Error":
           setError(msg.message);
           break;
+        case "LobbyClosed":
+          onSessionInvalid?.();
+          break;
       }
     };
   }, [lobbyCode, sessionToken]);

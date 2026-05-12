@@ -4,6 +4,7 @@ import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { GameView } from "./components/GameView";
 import { CameraPreview } from "./components/CameraPreview";
+import { MediaView } from "./components/MediaView";
 import type { MediaPrefs as CameraMediaPrefs } from "./components/CameraPreview";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useSession } from "./hooks/useSession";
@@ -150,36 +151,32 @@ function App() {
     clearSession();
   };
 
-  // Camera preview step
+  const inGame = currentPlayerId && gameState && (effectiveLobbyState?.game_active || holdGameView);
+  const inLobby = !inGame && currentPlayerId && effectiveLobbyState;
+
+  let screen;
+
   if (pendingAction) {
-    return (
-      <div className="app">
+    screen = (
+      <>
         <CameraPreview
           name={pendingAction.name}
           onConfirm={handlePreviewConfirm}
           onBack={() => setPendingAction(null)}
         />
         {joining && <div className="loading-overlay">Joining...</div>}
-      </div>
+      </>
     );
-  }
-
-  // No session: home screen
-  if (!session) {
-    return (
-      <div className="app">
-        <Home
-          onCreateLobby={handleCreateLobby}
-          onJoinLobby={handleJoinLobby}
-        />
-      </div>
+  } else if (!session) {
+    screen = (
+      <Home
+        onCreateLobby={handleCreateLobby}
+        onJoinLobby={handleJoinLobby}
+      />
     );
-  }
-
-  // In a game (or holding the win screen)
-  if (currentPlayerId && gameState && (effectiveLobbyState?.game_active || holdGameView)) {
-    return (
-      <div className="app">
+  } else if (inGame) {
+    screen = (
+      <>
         <GameView
           gameState={gameState}
           playerId={currentPlayerId}
@@ -197,23 +194,34 @@ function App() {
         {!connected && (
           <div className="reconnecting-bar">Reconnecting...</div>
         )}
-      </div>
+      </>
     );
-  }
-
-  // In lobby
-  if (currentPlayerId && effectiveLobbyState) {
-    return (
-      <div className="app">
+  } else if (inLobby) {
+    screen = (
+      <>
         <Lobby
           lobbyState={effectiveLobbyState}
           playerId={currentPlayerId}
           send={send}
           livekit={livekit}
         />
-        <button className="btn btn-ghost leave-btn" onClick={handleLeave}>
-          Leave Lobby
-        </button>
+        <div className="lobby-footer-btns">
+          <button className="btn btn-ghost" onClick={handleLeave}>
+            Leave Lobby
+          </button>
+          {effectiveLobbyState.host_id === currentPlayerId && (
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                if (window.confirm("End the lobby and kick everyone?")) {
+                  send({ type: "EndLobby" });
+                }
+              }}
+            >
+              End Lobby
+            </button>
+          )}
+        </div>
         {error && (
           <div className="error-toast" onClick={clearError}>
             {error}
@@ -222,16 +230,23 @@ function App() {
         {!connected && (
           <div className="reconnecting-bar">Reconnecting...</div>
         )}
+      </>
+    );
+  } else {
+    screen = (
+      <div className="screen">
+        <div className="loading-text">Connecting...</div>
       </div>
     );
   }
 
-  // Connecting...
   return (
     <div className="app">
-      <div className="screen">
-        <div className="loading-text">Connecting...</div>
-      </div>
+      {/* Global audio -- never unmounts regardless of screen */}
+      {Array.from(livekit.participants.entries()).map(([pid, media]) => (
+        <MediaView key={`audio-${pid}`} videoTrack={null} audioTrack={media.audioTrack} />
+      ))}
+      {screen}
     </div>
   );
 }

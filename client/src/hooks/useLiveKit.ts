@@ -96,23 +96,29 @@ export function useLiveKit(
     });
     roomRef.current = room;
 
-    const onTrackSubscribed = () => updateParticipants(room);
-    const onTrackUnsubscribed = () => updateParticipants(room);
-    const onLocalTrackPublished = () => updateLocalMedia(room);
+    const refresh = () => {
+      updateParticipants(room);
+      updateLocalMedia(room);
+    };
     const onConnected = () => {
       if (!cancelled) setConnected(true);
+      refresh();
     };
     const onDisconnected = () => {
       if (!cancelled) setConnected(false);
     };
 
-    room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
-    room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
-    room.on(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
+    room.on(RoomEvent.TrackSubscribed, refresh);
+    room.on(RoomEvent.TrackUnsubscribed, refresh);
+    room.on(RoomEvent.TrackMuted, refresh);
+    room.on(RoomEvent.TrackUnmuted, refresh);
+    room.on(RoomEvent.TrackPublished, refresh);
+    room.on(RoomEvent.LocalTrackPublished, refresh);
+    room.on(RoomEvent.LocalTrackUnpublished, refresh);
     room.on(RoomEvent.Connected, onConnected);
     room.on(RoomEvent.Disconnected, onDisconnected);
-    room.on(RoomEvent.ParticipantConnected, () => updateParticipants(room));
-    room.on(RoomEvent.ParticipantDisconnected, () => updateParticipants(room));
+    room.on(RoomEvent.ParticipantConnected, refresh);
+    room.on(RoomEvent.ParticipantDisconnected, refresh);
 
     // Fetch token and connect
     (async () => {

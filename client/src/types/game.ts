@@ -63,6 +63,7 @@ export type ServerMessage =
   | { type: "GameState"; state: PlayerGameState }
   | { type: "GameEvents"; events: GameEvent[] }
   | { type: "Error"; message: string }
+  | { type: "LobbyClosed" }
   | { type: "Welcome"; player_id: PlayerId; session_token: string }
   | {
       type: "ActionRequired";
@@ -117,7 +118,8 @@ export type ClientMessage =
   | { type: "GameAction"; action: GameAction }
   | { type: "TransferHost"; to_player_id: PlayerId }
   | { type: "KickPlayer"; player_id: PlayerId }
-  | { type: "EndGame" };
+  | { type: "EndGame" }
+  | { type: "EndLobby" };
 
 export type GameAction =
   | { Pass: null }

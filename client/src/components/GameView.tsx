@@ -364,11 +364,6 @@ export function GameView({
         })}
       </div>
 
-      {/* Always play all remote audio */}
-      {Array.from(livekit.participants.entries()).map(([pid, media]) => (
-        media.audioTrack ? <MediaView key={`audio-${pid}`} videoTrack={null} audioTrack={media.audioTrack} /> : null
-      ))}
-
       {/* Main scene area */}
       <div className="scene">
         {renderScene()}

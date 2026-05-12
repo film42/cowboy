@@ -650,6 +650,17 @@ async fn handle_client_message(
             }
         },
 
+        ClientMessage::EndLobby => {
+            if lobby_guard.host_id != player_id {
+                let _ = lobby_guard.tx.send(ServerMessage::Error {
+                    message: "Only the host can end the lobby".to_string(),
+                });
+                return;
+            }
+            info!("Lobby {} closed by host", lobby_guard.code);
+            let _ = lobby_guard.tx.send(ServerMessage::LobbyClosed);
+        }
+
         ClientMessage::KickPlayer { player_id: kick_id } => {
             if lobby_guard.host_id != player_id {
                 let _ = lobby_guard.tx.send(ServerMessage::Error {
