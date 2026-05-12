@@ -11,6 +11,7 @@ import { CardDisplay } from "./CardDisplay";
 import { MediaView } from "./MediaView";
 import { MediaToggles } from "./MediaToggles";
 import { Countdown } from "./Countdown";
+import { DesertBg } from "./DesertBg";
 import type { LiveKitState } from "../hooks/useLiveKit";
 
 interface GameViewProps {
@@ -280,7 +281,9 @@ export function GameView({
         : `${aliveCount}/${totalPlayers}`;
 
   return (
-    <div className="screen game-screen">
+    <div className={`screen game-screen game-phase-${phase}`}>
+      <DesertBg />
+
       {/* Announcement overlay */}
       {announcement && (
         <div className="announcement-overlay" onClick={() => { setAnnouncement(null); setAnnouncementSub(null); }}>

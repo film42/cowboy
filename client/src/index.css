@@ -375,7 +375,48 @@ input.code-input {
 
 /* --- Game Screen --- */
 
-.game-screen { padding: 0; max-width: 100%; gap: 0; height: 100dvh; overflow: hidden; }
+.game-screen { padding: 0; max-width: 100%; gap: 0; height: 100dvh; overflow: hidden; position: relative; }
+
+.game-screen::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(transparent, rgba(250, 248, 245, 0.9));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.game-phase-round_end::after {
+  height: 45%;
+  background: linear-gradient(transparent, rgba(250, 248, 245, 0.95));
+}
+
+
+
+
+.desert-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.game-screen > *:not(.desert-bg):not(.deck-reveal-overlay):not(.announcement-overlay) {
+  position: relative;
+  z-index: 3;
+}
+
+.game-screen > .deck-reveal-overlay,
+.game-screen > .announcement-overlay {
+  z-index: 100;
+}
 
 /* Round bar */
 .round-bar {
@@ -581,7 +622,7 @@ input.code-input {
   padding: 14px 0 16px;
   position: sticky;
   bottom: 0;
-  background: linear-gradient(transparent, var(--bg) 25%);
+  background: none;
 }
 
 /* --- Battle Layout --- */
