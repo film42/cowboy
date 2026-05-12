@@ -1,15 +1,15 @@
 :root {
-  --bg: #1a1a2e;
-  --bg-card: #16213e;
-  --bg-surface: #0f3460;
-  --text: #e8e8e8;
-  --text-dim: #8888aa;
-  --accent: #e94560;
-  --accent-glow: rgba(233, 69, 96, 0.3);
-  --gold: #f5c518;
-  --green: #4ade80;
-  --red: #ef4444;
-  --white: #ffffff;
+  --bg: #1c1108;
+  --bg-card: #2a1a0e;
+  --bg-surface: #3d2817;
+  --text: #e8dcc8;
+  --text-dim: #9c8b74;
+  --accent: #c0392b;
+  --accent-glow: rgba(192, 57, 43, 0.35);
+  --gold: #d4a03c;
+  --green: #6b8f4a;
+  --red: #b33a2a;
+  --white: #f5ead0;
 
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   font-size: 16px;
@@ -62,20 +62,22 @@ body {
 }
 
 .title {
-  font-size: 64px;
-  font-weight: 900;
-  letter-spacing: 8px;
+  font-family: "Rye", serif;
+  font-size: 56px;
+  font-weight: 400;
+  letter-spacing: 4px;
   color: var(--gold);
-  text-shadow: 0 0 40px rgba(245, 197, 24, 0.3);
+  text-shadow: 2px 2px 0 #1c1108, 0 0 30px rgba(212, 160, 60, 0.3);
   margin: 0;
 }
 
 .subtitle {
+  font-family: "Rye", serif;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 4px;
-  margin-top: -16px;
+  letter-spacing: 6px;
+  margin-top: -8px;
 }
 
 /* --- Inputs --- */
@@ -88,7 +90,7 @@ input[type="text"] {
   width: 100%;
   padding: 16px;
   border: 2px solid var(--bg-surface);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--bg-card);
   color: var(--text);
   font-size: 18px;
@@ -97,7 +99,7 @@ input[type="text"] {
 }
 
 input[type="text"]:focus {
-  border-color: var(--accent);
+  border-color: var(--gold);
 }
 
 input.code-input {
@@ -118,14 +120,15 @@ input.code-input {
 }
 
 .btn {
-  padding: 16px 24px;
+  padding: 14px 24px;
   border: none;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
   text-align: center;
+  letter-spacing: 0.5px;
 }
 
 .btn:active {
@@ -133,7 +136,7 @@ input.code-input {
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
   transform: none;
 }
@@ -141,16 +144,17 @@ input.code-input {
 .btn-primary {
   background: var(--accent);
   color: var(--white);
-  box-shadow: 0 4px 16px var(--accent-glow);
+  box-shadow: 0 3px 12px var(--accent-glow);
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 6px 24px var(--accent-glow);
+  box-shadow: 0 5px 20px var(--accent-glow);
 }
 
 .btn-secondary {
   background: var(--bg-surface);
   color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-danger {
@@ -160,7 +164,7 @@ input.code-input {
 
 .btn-warning {
   background: var(--gold);
-  color: #1a1a2e;
+  color: var(--bg);
 }
 
 .btn-ghost {
@@ -170,8 +174,14 @@ input.code-input {
 }
 
 .btn-large {
-  padding: 20px 32px;
-  font-size: 20px;
+  padding: 18px 32px;
+  font-size: 19px;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--white);
+  box-shadow: 0 3px 12px var(--accent-glow);
 }
 
 /* --- Lobby Screen --- */
@@ -195,15 +205,17 @@ input.code-input {
   flex-direction: column;
   align-items: center;
   background: var(--bg-card);
-  border: 2px dashed var(--gold);
-  border-radius: 12px;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
   padding: 16px 32px;
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: 12px;
+  font-family: "Rye", serif;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 10px;
   color: var(--gold);
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .invite-code:hover {
@@ -211,11 +223,13 @@ input.code-input {
 }
 
 .copy-hint {
-  font-size: 11px;
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
   font-weight: 400;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-dim);
-  margin-top: 4px;
+  margin-top: 6px;
+  text-transform: uppercase;
 }
 
 /* --- Camera Preview Screen --- */
@@ -334,7 +348,7 @@ input.code-input {
   height: 22px;
   border-radius: 50%;
   background: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s;
 }
 
@@ -579,21 +593,22 @@ input.code-input {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 14px 20px;
-  background: rgba(245, 197, 24, 0.1);
-  border: 1px solid rgba(245, 197, 24, 0.25);
-  border-radius: 12px;
+  padding: 12px 20px;
+  background: rgba(212, 160, 60, 0.08);
+  border: 1px solid rgba(212, 160, 60, 0.2);
+  border-radius: 6px;
   width: 100%;
   animation: bannerIn 0.5s ease;
 }
 
 .last-winner-trophy {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .last-winner-text {
-  font-size: 16px;
-  font-weight: 600;
+  font-family: "Rye", serif;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--gold);
 }
 
@@ -645,30 +660,33 @@ input.code-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: var(--bg-card);
   width: 100%;
-  border-bottom: 1px solid var(--bg-surface);
+  border-bottom: 1px solid rgba(212, 160, 60, 0.15);
 }
 
 .round-number {
-  font-weight: 700;
+  font-family: "Rye", serif;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--gold);
 }
 
 .cowboy-badge {
-  font-size: 13px;
-  font-weight: 700;
+  font-family: "Rye", serif;
+  font-size: 12px;
+  font-weight: 400;
   color: var(--gold);
-  background: rgba(245, 197, 24, 0.15);
-  padding: 2px 10px;
-  border-radius: 6px;
+  background: rgba(212, 160, 60, 0.12);
+  padding: 3px 10px;
+  border-radius: 4px;
   letter-spacing: 1px;
 }
 
 .alive-count {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--green);
 }
 
@@ -711,7 +729,8 @@ input.code-input {
   overflow-x: auto;
   width: 100%;
   -webkit-overflow-scrolling: touch;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(212, 160, 60, 0.08);
 }
 
 .player-chip {
@@ -750,14 +769,14 @@ input.code-input {
 .player-chip.dealer::after {
   content: "D";
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
   background: var(--gold);
   border-radius: 50%;
   border: 2px solid var(--bg);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   color: var(--bg);
   display: flex;
@@ -809,10 +828,10 @@ input.code-input {
 .profile-medium { min-width: 120px; }
 .profile-large { min-width: 140px; }
 
-.profile-glow-gold { border-color: var(--gold); box-shadow: 0 0 20px rgba(245, 197, 24, 0.2); }
-.profile-glow-red { border-color: var(--red); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
-.profile-glow-green { border-color: var(--green); box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
-.profile-glow-accent { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+.profile-glow-gold { border-color: var(--gold); box-shadow: 0 0 16px rgba(212, 160, 60, 0.2); }
+.profile-glow-red { border-color: var(--red); box-shadow: 0 0 16px rgba(179, 58, 42, 0.3); }
+.profile-glow-green { border-color: var(--green); box-shadow: 0 0 16px rgba(107, 143, 74, 0.25); }
+.profile-glow-accent { border-color: var(--accent); box-shadow: 0 0 16px var(--accent-glow); }
 
 .profile-dead { opacity: 0.4; }
 
@@ -939,8 +958,9 @@ input.code-input {
 }
 
 .scene-label {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: "Rye", serif;
+  font-size: 16px;
+  font-weight: 400;
   text-align: center;
   margin-bottom: 16px;
   color: var(--text);
@@ -953,7 +973,7 @@ input.code-input {
 
 .scene-label-cowboy {
   color: var(--gold);
-  font-size: 24px;
+  font-size: 20px;
   letter-spacing: 2px;
 }
 
@@ -1012,14 +1032,15 @@ input.code-input {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  font-size: 14px;
-  font-weight: 700;
+  font-family: "Rye", serif;
+  font-size: 13px;
+  font-weight: 400;
   letter-spacing: 1px;
   color: var(--gold);
   padding: 8px 16px;
   margin: -12px -16px 12px -16px;
-  background: rgba(245, 197, 24, 0.06);
-  border-bottom: 1px solid rgba(245, 197, 24, 0.15);
+  background: rgba(212, 160, 60, 0.06);
+  border-bottom: 1px solid rgba(212, 160, 60, 0.12);
 }
 
 .battle-banner-alert {
@@ -1027,12 +1048,13 @@ input.code-input {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  font-size: 15px;
-  font-weight: 800;
+  font-family: "Rye", serif;
+  font-size: 14px;
+  font-weight: 400;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--white);
-  background: var(--red);
+  background: var(--accent);
   padding: 8px 16px;
   margin: -12px -16px 12px -16px;
   animation: bannerPulse 1.5s ease infinite alternate;
@@ -1183,12 +1205,12 @@ input.code-input {
 .bp-opponent .bp-avatar {
   width: 200px;
   height: 200px;
-  border-color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow);
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(212, 160, 60, 0.15);
 }
 
 .bp-avatar-video {
-  border-color: var(--green);
+  border-color: var(--gold);
 }
 
 .bp-video {
@@ -1271,9 +1293,9 @@ input.code-input {
   left: 3px;
   right: -3px;
   bottom: -3px;
-  background: linear-gradient(135deg, var(--accent) 0%, #8b0033 100%);
-  border-radius: 12px;
-  opacity: 0.5;
+  background: linear-gradient(135deg, #6b2020 0%, #3d1515 100%);
+  border-radius: 8px;
+  opacity: 0.6;
 }
 
 /* --- Cowboy Vote Scene --- */
@@ -1429,13 +1451,13 @@ input.code-input {
 }
 
 .your-outcome-safe {
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(107, 143, 74, 0.12);
+  border: 1px solid rgba(107, 143, 74, 0.3);
 }
 
 .your-outcome-lost {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(179, 58, 42, 0.12);
+  border: 1px solid rgba(179, 58, 42, 0.3);
 }
 
 .your-outcome-icon {
@@ -1476,8 +1498,9 @@ input.code-input {
 }
 
 .safe-title {
-  font-size: 28px;
-  font-weight: 900;
+  font-family: "Rye", serif;
+  font-size: 24px;
+  font-weight: 400;
   color: var(--green);
   letter-spacing: 2px;
 }
@@ -1517,10 +1540,11 @@ input.code-input {
 }
 
 .gameover-title {
-  font-size: 32px;
-  font-weight: 900;
+  font-family: "Rye", serif;
+  font-size: 28px;
+  font-weight: 400;
   color: var(--gold);
-  text-shadow: 0 0 40px rgba(245, 197, 24, 0.3);
+  text-shadow: 2px 2px 0 var(--bg), 0 0 30px rgba(212, 160, 60, 0.3);
   letter-spacing: 2px;
 }
 
@@ -1573,28 +1597,30 @@ input.code-input {
 }
 
 .card-back {
-  background: linear-gradient(135deg, var(--accent) 0%, #8b0033 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, #6b2020 0%, #3d1515 100%);
+  border: 2px solid rgba(212, 160, 60, 0.2);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
 }
 
 .card-face {
-  background: var(--white);
-  border: 2px solid #ddd;
+  background: linear-gradient(145deg, #f5ead0 0%, #e8d5b0 100%);
+  border: 2px solid #c4aa78;
   gap: 2px;
+  box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .card-black .card-rank,
 .card-black .card-suit {
-  color: #1a1a2e;
+  color: #2a1a0e;
 }
 
 .card-red .card-rank,
 .card-red .card-suit {
-  color: var(--red);
+  color: #8b1a1a;
 }
 
 .card-highlight {
-  box-shadow: 0 0 20px var(--gold), 0 0 40px rgba(245, 197, 24, 0.2);
+  box-shadow: 0 0 16px rgba(212, 160, 60, 0.5), 0 0 32px rgba(212, 160, 60, 0.2);
   border-color: var(--gold);
 }
 
@@ -1687,12 +1713,12 @@ input.code-input {
 }
 
 .countdown-ring-fill {
-  stroke: var(--green);
+  stroke: var(--gold);
   transition: stroke-dasharray 1s linear;
 }
 
 .countdown-urgent .countdown-ring-fill {
-  stroke: var(--red);
+  stroke: var(--accent);
 }
 
 .countdown-num {
@@ -1724,12 +1750,13 @@ input.code-input {
 }
 
 .announcement-text {
-  font-size: 48px;
-  font-weight: 900;
+  font-family: "Rye", serif;
+  font-size: 42px;
+  font-weight: 400;
   color: var(--gold);
-  text-shadow: 0 0 60px rgba(245, 197, 24, 0.5);
+  text-shadow: 2px 2px 0 var(--bg), 0 0 40px rgba(212, 160, 60, 0.5);
   animation: pulseIn 0.5s ease;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
 }
 
 .announcement-sub {
@@ -1789,7 +1816,7 @@ input.code-input {
   left: 0;
   right: 0;
   background: var(--gold);
-  color: #1a1a2e;
+  color: var(--bg);
   text-align: center;
   padding: 4px;
   font-size: 13px;
