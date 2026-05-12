@@ -399,13 +399,78 @@ input.code-input {
 
 .desert-bg {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.6;
+  overflow: hidden;
+  opacity: 0.55;
+}
+
+.desert-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #7ec8e3 0%, #a8d8ea 40%, #e8d8c0 80%, #d4b888 100%);
+}
+
+.desert-sun {
+  position: absolute;
+  top: 8%;
+  right: 18%;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f8e878 0%, #f0d860 60%, transparent 100%);
+  opacity: 0.7;
+}
+
+.desert-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 25%;
+  display: flex;
+  animation: drift 90s linear infinite;
+}
+
+.desert-clouds svg { width: 50%; height: 100%; flex-shrink: 0; }
+
+.desert-layer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+}
+
+.desert-layer svg { flex-shrink: 0; }
+
+.desert-far {
+  width: 200%;
+  height: 55%;
+  animation: drift 120s linear infinite;
+}
+
+.desert-far svg { width: 50%; height: 100%; }
+
+.desert-mid {
+  width: 200%;
+  height: 50%;
+  animation: drift 80s linear infinite;
+}
+
+.desert-mid svg { width: 50%; height: 100%; }
+
+.desert-near {
+  width: 200%;
+  height: 35%;
+  animation: drift 50s linear infinite;
+}
+
+.desert-near svg { width: 50%; height: 100%; }
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 .game-screen > *:not(.desert-bg):not(.deck-reveal-overlay):not(.announcement-overlay) {
