@@ -100,13 +100,11 @@ function PlayerProfile({
 
 function BattleProfile({
   player,
-  playerId,
   getMedia,
   isYou = false,
   label,
 }: {
   player: PlayerPublicState;
-  playerId: PlayerId;
   getMedia: (id: PlayerId) => { audioTrack: MediaStreamTrack | null; videoTrack: MediaStreamTrack | null };
   isYou?: boolean;
   label?: string;
@@ -443,13 +441,13 @@ export function GameView({
           </div>
 
           <div className="battle-opponent">
-            <BattleProfile player={target} playerId={playerId} getMedia={getMedia} />
+            <BattleProfile player={target} getMedia={getMedia} />
             <CardDisplay card={null} faceDown size="small" />
           </div>
 
           <div className="battle-you">
             <CardDisplay card={gameState.your_card} size="medium" highlight />
-            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+            <BattleProfile player={myPlayer} getMedia={getMedia} isYou />
           </div>
 
           <div className="scene-actions battle-actions">
@@ -484,13 +482,13 @@ export function GameView({
           </div>
 
           <div className="battle-opponent">
-            <BattleProfile player={traderPlayer} playerId={playerId} getMedia={getMedia} label="wants your card" />
+            <BattleProfile player={traderPlayer} getMedia={getMedia} label="wants your card" />
             <CardDisplay card={null} faceDown size="small" />
           </div>
 
           <div className="battle-you">
             <CardDisplay card={gameState.your_card} size="medium" highlight />
-            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+            <BattleProfile player={myPlayer} getMedia={getMedia} isYou />
           </div>
 
           <div className="scene-actions battle-actions">
@@ -522,14 +520,14 @@ export function GameView({
         return (
           <div className="battle">
             <div className="battle-staredown">
-              <BattleProfile player={targetPlayer} playerId={playerId} getMedia={getMedia} label="deciding..." />
+              <BattleProfile player={targetPlayer} getMedia={getMedia} label="deciding..." />
             </div>
 
             <div className="battle-waiting-text">Will they block?</div>
 
             <div className="battle-you">
               <CardDisplay card={gameState.your_card} size="small" />
-              <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+              <BattleProfile player={myPlayer} getMedia={getMedia} isYou />
             </div>
           </div>
         );
@@ -553,14 +551,14 @@ export function GameView({
         </div>
 
         <div className="battle-watch">
-          <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} />
+          <BattleProfile player={actorPlayer} getMedia={getMedia} />
           <div className="battle-watch-vs">vs</div>
-          <BattleProfile player={nextPlayer} playerId={playerId} getMedia={getMedia} />
+          <BattleProfile player={nextPlayer} getMedia={getMedia} />
         </div>
 
         <div className="battle-you">
           <CardDisplay card={gameState.your_card} size="small" />
-          <BattleProfile player={myPlayer!} playerId={playerId} getMedia={getMedia} isYou />
+          <BattleProfile player={myPlayer!} getMedia={getMedia} isYou />
         </div>
       </div>
     );
@@ -592,7 +590,7 @@ export function GameView({
 
           <div className="battle-you">
             <CardDisplay card={gameState.your_card} size="medium" highlight />
-            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou label="Dealer" />
+            <BattleProfile player={myPlayer} getMedia={getMedia} isYou label="Dealer" />
           </div>
 
           <div className="scene-actions battle-actions">
@@ -623,7 +621,7 @@ export function GameView({
         </div>
 
         <div className="battle-opponent">
-          <BattleProfile player={dealerPlayer} playerId={playerId} getMedia={getMedia} label="Dealer" />
+          <BattleProfile player={dealerPlayer} getMedia={getMedia} label="Dealer" />
           <div className="deck-stack" style={{ alignSelf: "center" }}>
             <CardDisplay card={null} faceDown size="medium" />
           </div>
@@ -631,7 +629,7 @@ export function GameView({
 
         <div className="battle-you">
           <CardDisplay card={gameState.your_card} size="small" />
-          <BattleProfile player={myPlayer!} playerId={playerId} getMedia={getMedia} isYou />
+          <BattleProfile player={myPlayer!} getMedia={getMedia} isYou />
         </div>
       </div>
     );
