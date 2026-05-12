@@ -22,7 +22,8 @@ interface UseWebSocketReturn {
 
 export function useWebSocket(
   lobbyCode: string | null,
-  sessionToken: string | null
+  sessionToken: string | null,
+  onSessionInvalid?: () => void
 ): UseWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
@@ -32,6 +33,8 @@ export function useWebSocket(
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasEverConnected = useRef(false);
+  const failCount = useRef(0);
 
   const connect = useCallback(() => {
     if (!lobbyCode || !sessionToken) return;
@@ -46,15 +49,35 @@ export function useWebSocket(
     ws.onopen = () => {
       setConnected(true);
       setError(null);
+      failCount.current = 0;
     };
 
     ws.onclose = () => {
       setConnected(false);
-      reconnectTimeout.current = setTimeout(connect, 2000);
+      if (hasEverConnected.current) {
+        // Was working before -- server probably restarted. Try a few times then bail.
+        failCount.current += 1;
+        if (failCount.current >= 3) {
+          onSessionInvalid?.();
+        } else {
+          reconnectTimeout.current = setTimeout(connect, 2000);
+        }
+      } else {
+        // Never connected -- could be initial race or stale session
+        failCount.current += 1;
+        if (failCount.current >= 3) {
+          onSessionInvalid?.();
+        } else {
+          reconnectTimeout.current = setTimeout(connect, 1000);
+        }
+      }
     };
 
     ws.onerror = () => {
-      setError("Connection error");
+      // Don't show error on transient failures
+      if (hasEverConnected.current) {
+        setError("Connection error");
+      }
     };
 
     ws.onmessage = (event) => {
@@ -62,6 +85,8 @@ export function useWebSocket(
 
       switch (msg.type) {
         case "Welcome":
+          hasEverConnected.current = true;
+          failCount.current = 0;
           setPlayerId(msg.player_id);
           break;
         case "LobbyUpdate":

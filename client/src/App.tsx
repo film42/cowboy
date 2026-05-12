@@ -37,7 +37,11 @@ function App() {
     clearError,
   } = useWebSocket(
     session?.lobbyCode ?? null,
-    session?.sessionToken ?? null
+    session?.sessionToken ?? null,
+    () => {
+      setInitialLobbyState(null);
+      clearSession();
+    }
   );
 
   const currentPlayerId = playerId ?? session?.playerId ?? null;
