@@ -94,6 +94,54 @@ function PlayerProfile({
   );
 }
 
+// --- Battle Profile (compact horizontal, big face for banter) ---
+
+function BattleProfile({
+  player,
+  playerId,
+  getMedia,
+  isYou = false,
+  label,
+}: {
+  player: PlayerPublicState;
+  playerId: PlayerId;
+  getMedia: (id: PlayerId) => { audioTrack: MediaStreamTrack | null; videoTrack: MediaStreamTrack | null };
+  isYou?: boolean;
+  label?: string;
+}) {
+  const media = getMedia(player.id);
+  const hasVideo = !!media.videoTrack;
+
+  return (
+    <div className={`bp ${isYou ? "bp-you" : "bp-opponent"}`}>
+      <div className={`bp-avatar ${hasVideo ? "bp-avatar-video" : ""}`}>
+        {hasVideo ? (
+          <MediaView
+            videoTrack={media.videoTrack}
+            audioTrack={isYou ? null : media.audioTrack}
+            muted={isYou}
+            className="bp-video"
+          />
+        ) : (
+          <span className="bp-initial">{player.name[0]}</span>
+        )}
+        {!hasVideo && !isYou && media.audioTrack && (
+          <MediaView videoTrack={null} audioTrack={media.audioTrack} />
+        )}
+      </div>
+      <div className="bp-info">
+        <div className="bp-name">{player.name}{isYou && <span className="bp-you-tag"> (you)</span>}</div>
+        <div className="bp-stats">
+          <span className="bp-lives">{"♥".repeat(player.lives)}</span>
+          {player.has_blocker && <span>🛡</span>}
+          {player.has_exemption && <span>⭐</span>}
+        </div>
+        {label && <div className="bp-label">{label}</div>}
+      </div>
+    </div>
+  );
+}
+
 // --- Showdown Result Tracking ---
 
 interface ShowdownInfo {
@@ -145,12 +193,12 @@ export function GameView({
     if (phase !== "cowboy_vote") {
       setCowboyVoted(false);
     }
-    // Clear stale announcements when a new round starts
+    // Clear stale announcements when a new round starts or new game begins
     if (phase === "normal_turn" || phase === "dealer_turn" || phase === "cowboy_vote") {
       setAnnouncement(null);
       setAnnouncementSub(null);
     }
-  }, [phase]);
+  }, [phase, gameState.round_number]);
 
   // Process events for announcements and showdown info
   useEffect(() => {
@@ -165,8 +213,11 @@ export function GameView({
           showAnnouncement("💀 RESURRECTION!", "All players return with 1 life", 3000);
           break;
         case "GameWon": {
-          const winner = getPlayer(event.winner_id);
-          showAnnouncement(`🏆 ${winner?.name || "Someone"} wins!`, null, 0);
+          // Only show if we're actually in game_over phase (not a stale event from last game)
+          if (gameState.phase === "game_over") {
+            const winner = getPlayer(event.winner_id);
+            showAnnouncement(`🏆 ${winner?.name || "Someone"} wins!`, null, 0);
+          }
           break;
         }
         case "ShowdownResult":
@@ -366,121 +417,120 @@ export function GameView({
 
     // If it's MY turn to trade or pass
     if (phase === "normal_turn" && isMyTurn) {
-      // Find who I'd trade with (next alive player)
       const aliveNonEliminated = gameState.players.filter((p) => !p.is_eliminated);
       const myIdx = aliveNonEliminated.findIndex((p) => p.id === playerId);
       const targetIdx = (myIdx + 1) % aliveNonEliminated.length;
       const target = aliveNonEliminated[targetIdx];
 
       return (
-        <div className="scene-trade">
-          <div className="scene-label">Your Turn</div>
-          <div className="trade-stage">
-            {/* Your card and profile */}
-            <div className="trade-side trade-you">
-              <P player={myPlayer} isYou={true} size="large" glow="gold" />
-              <div className="your-card-wrapper">
-                <CardDisplay card={gameState.your_card} size="large" highlight />
-                <div className="your-card-tag">Your Card</div>
-              </div>
-            </div>
+        <div className="battle">
+          <div className="battle-banner-prompt">Want to trade with {target.name}?</div>
 
-            <div className="trade-vs">
-              <span>VS</span>
-            </div>
-
-            {/* Target player */}
-            <div className="trade-side">
-              <P player={target} isYou={false} size="large" glow="accent" />
-              <CardDisplay card={null} faceDown size="large" />
-            </div>
+          <div className="battle-opponent">
+            <BattleProfile player={target} playerId={playerId} getMedia={getMedia} />
+            <CardDisplay card={null} faceDown size="small" />
           </div>
 
-          <div className="scene-actions">
-            <button
-              className="btn btn-secondary btn-large"
-              onClick={() => sendAction(send, { Pass: null })}
-            >
-              Keep!
-            </button>
-            <button
-              className="btn btn-accent btn-large"
-              onClick={() => sendAction(send, { Trade: null })}
-            >
-              Trade Cards
-            </button>
+          <div className="battle-you">
+            <CardDisplay card={gameState.your_card} size="medium" highlight />
+            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+          </div>
+
+          <div className="scene-actions battle-actions">
+            <div className="battle-actions-row">
+              <button
+                className="btn btn-secondary btn-battle"
+                onClick={() => sendAction(send, { Pass: null })}
+              >
+                Keep!
+              </button>
+              <button
+                className="btn btn-accent btn-battle"
+                onClick={() => sendAction(send, { Trade: null })}
+              >
+                Trade
+              </button>
+            </div>
           </div>
         </div>
       );
     }
 
-    // If someone is trying to trade with ME and I can block
     if (isTradeProposed && isMyTurn) {
       return (
-        <div className="scene-trade">
-          <div className="scene-label scene-label-alert">Trade Incoming!</div>
-          <div className="trade-stage">
-            <div className="trade-side">
-              <P player={actorPlayer} isYou={false} size="large" glow="red" label="wants your card" />
-              <CardDisplay card={null} faceDown size="large" />
-            </div>
+        <div className="battle">
+          <div className="battle-banner-alert">Trade Incoming!</div>
 
-            <div className="trade-vs">
-              <span>→</span>
-            </div>
-
-            <div className="trade-side trade-you">
-              <P player={myPlayer} isYou={true} size="large" glow="gold" />
-              <div className="your-card-wrapper">
-                <CardDisplay card={gameState.your_card} size="large" highlight />
-                <div className="your-card-tag">Your Card</div>
-              </div>
-            </div>
+          <div className="battle-opponent">
+            <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} label="wants your card" />
+            <CardDisplay card={null} faceDown size="small" />
           </div>
 
-          <div className="scene-actions">
-            <button
-              className="btn btn-danger btn-large"
-              onClick={() => sendAction(send, { AcceptTrade: null })}
-            >
-              Accept Trade
-            </button>
-            {myPlayer.has_blocker && (
+          <div className="battle-you">
+            <CardDisplay card={gameState.your_card} size="medium" highlight />
+            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+          </div>
+
+          <div className="scene-actions battle-actions">
+            <div className="battle-actions-row">
               <button
-                className="btn btn-warning btn-large"
-                onClick={() => sendAction(send, { Block: null })}
+                className="btn btn-danger btn-battle"
+                onClick={() => sendAction(send, { AcceptTrade: null })}
               >
-                🛡 Block
+                Accept
               </button>
-            )}
+              {myPlayer.has_blocker && (
+                <button
+                  className="btn btn-warning btn-battle"
+                  onClick={() => sendAction(send, { Block: null })}
+                >
+                  🛡 Block
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );
     }
 
-    // Watching someone else's turn
+    // I proposed the trade, watching them decide to block or accept
+    if (isTradeProposed && !isMyTurn) {
+      const targetPlayer = getPlayer(gameState.current_actor!);
+      if (targetPlayer) {
+        return (
+          <div className="battle">
+            <div className="battle-staredown">
+              <BattleProfile player={targetPlayer} playerId={playerId} getMedia={getMedia} label="deciding..." />
+            </div>
+
+            <div className="battle-waiting-text">Will they block?</div>
+
+            <div className="battle-you">
+              <CardDisplay card={gameState.your_card} size="small" />
+              <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou />
+            </div>
+          </div>
+        );
+      }
+    }
+
+    // Watching someone else's turn (bystander)
     const watchTarget = gameState.players.filter((p) => !p.is_eliminated);
     const actorIdx = watchTarget.findIndex((p) => p.id === currentActor);
     const nextIdx = (actorIdx + 1) % watchTarget.length;
     const nextPlayer = watchTarget[nextIdx];
 
     return (
-      <div className="scene-trade">
-        <div className="scene-label">{actorPlayer.name}'s Turn</div>
-        <div className="trade-stage">
-          <div className="trade-side">
-            <P player={actorPlayer} isYou={actorPlayer.id === playerId} size="large" glow="accent" label="deciding..." />
-          </div>
-          <div className="trade-vs"><span>→</span></div>
-          <div className="trade-side">
-            <P player={nextPlayer} isYou={nextPlayer.id === playerId} size="large" />
-          </div>
+      <div className="battle">
+        <div className="battle-watch">
+          <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} label={isTradeProposed ? "trading" : "deciding..."} />
+          <div className="battle-watch-vs">vs</div>
+          <BattleProfile player={nextPlayer} playerId={playerId} getMedia={getMedia} />
         </div>
 
-        {/* Still show your card at the bottom */}
-        <div className="scene-your-card">
-          <div className="your-card-label">Your Card</div>
-          <CardDisplay card={gameState.your_card} size="medium" />
+        <div className="battle-you">
+          <CardDisplay card={gameState.your_card} size="small" />
+          <BattleProfile player={myPlayer!} playerId={playerId} getMedia={getMedia} isYou />
         </div>
       </div>
     );
@@ -497,36 +547,34 @@ export function GameView({
 
     if (isMyTurn) {
       return (
-        <div className="scene-dealer">
-          <div className="scene-label">You Are the Dealer</div>
-          <div className="dealer-stage">
-            <div className="dealer-you">
-              <P player={myPlayer} isYou={true} size="large" glow="gold" label="Dealer" />
-              <div className="your-card-wrapper">
-                <CardDisplay card={gameState.your_card} size="large" highlight />
-                <div className="your-card-tag">Your Card</div>
-              </div>
+        <div className="battle">
+          <div className="battle-opponent">
+            <div className="deck-stack">
+              <CardDisplay card={null} faceDown size="medium" />
             </div>
-            <div className="dealer-deck">
-              <div className="deck-label">The Deck</div>
-              <div className="deck-stack">
-                <CardDisplay card={null} faceDown size="large" />
-              </div>
-            </div>
+            <div className="deck-label">The Deck</div>
           </div>
-          <div className="scene-actions">
-            <button
-              className="btn btn-secondary btn-large"
-              onClick={() => sendAction(send, { DealerPass: null })}
-            >
-              Keep Card
-            </button>
-            <button
-              className="btn btn-accent btn-large"
-              onClick={() => sendAction(send, { TakeOffTop: null })}
-            >
-              Take Off Top
-            </button>
+
+          <div className="battle-you">
+            <CardDisplay card={gameState.your_card} size="medium" highlight />
+            <BattleProfile player={myPlayer} playerId={playerId} getMedia={getMedia} isYou label="Dealer" />
+          </div>
+
+          <div className="scene-actions battle-actions">
+            <div className="battle-actions-row">
+              <button
+                className="btn btn-secondary btn-battle"
+                onClick={() => sendAction(send, { DealerPass: null })}
+              >
+                Keep Card
+              </button>
+              <button
+                className="btn btn-accent btn-battle"
+                onClick={() => sendAction(send, { TakeOffTop: null })}
+              >
+                Off the Top
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -534,22 +582,17 @@ export function GameView({
 
     // Watching the dealer
     return (
-      <div className="scene-dealer">
-        <div className="scene-label">{dealerPlayer.name} is the Dealer</div>
-        <div className="dealer-stage">
-          <div className="dealer-you">
-            <P player={dealerPlayer} isYou={false} size="large" glow="accent" label="Dealer" />
-          </div>
-          <div className="dealer-deck">
-            <div className="deck-label">The Deck</div>
-            <div className="deck-stack">
-              <CardDisplay card={null} faceDown size="large" />
-            </div>
+      <div className="battle">
+        <div className="battle-opponent">
+          <BattleProfile player={dealerPlayer} playerId={playerId} getMedia={getMedia} label="Dealer" />
+          <div className="deck-stack">
+            <CardDisplay card={null} faceDown size="small" />
           </div>
         </div>
-        <div className="scene-your-card">
-          <div className="your-card-label">Your Card</div>
+
+        <div className="battle-you">
           <CardDisplay card={gameState.your_card} size="medium" />
+          <div className="battle-you-label">Your Card</div>
         </div>
       </div>
     );

@@ -982,105 +982,269 @@ input.code-input {
   box-shadow: 0 4px 16px var(--accent-glow);
 }
 
-/* --- Trading Scene --- */
+/* --- Battle Layout (Trade + Dealer scenes) --- */
 
-.scene-trade {
+.battle {
   display: flex;
   flex-direction: column;
-  align-items: center;
   width: 100%;
   flex: 1;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 12px 0;
 }
 
-.trade-stage {
+.battle-opponent {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-  margin: 8px 0;
+  gap: 10px;
+  align-self: flex-end;
+  animation: slideInRight 0.3s ease;
 }
 
-.trade-side {
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.battle-banner-prompt {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold);
+  padding: 10px 0;
+  margin: -12px -16px 12px -16px;
+  background: rgba(245, 197, 24, 0.06);
+  border-bottom: 1px solid rgba(245, 197, 24, 0.15);
+}
+
+.battle-banner-alert {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--red);
+  padding: 10px 0;
+  margin: -12px -16px 12px -16px;
+  animation: bannerPulse 1.5s ease infinite alternate;
+}
+
+@keyframes bannerPulse {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+.battle-you {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  flex: 1;
+  gap: 10px;
+  align-self: flex-start;
+  margin-top: auto;
+  margin-bottom: 24px;
+  animation: slideInLeft 0.3s ease;
 }
 
-.your-card-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.your-card-tag {
+.battle-you-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
   color: var(--gold);
-  background: rgba(245, 197, 24, 0.1);
-  padding: 3px 10px;
-  border-radius: 6px;
 }
 
-.trade-vs {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--text-dim);
-  padding: 0 4px;
+@keyframes slideInLeft {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
-.scene-your-card {
+/* Staredown: you proposed trade, watching them decide */
+.battle-staredown {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 16px 0;
+  justify-content: center;
+  padding: 8px 0;
+  animation: slideInRight 0.3s ease;
 }
 
-.your-card-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+.battle-waiting-text {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-dim);
+  font-style: italic;
+  animation: pulseGlow 1.5s ease infinite alternate;
 }
 
-/* --- Dealer Scene --- */
-
-.scene-dealer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  flex: 1;
-}
-
-.dealer-stage {
+/* Bystander: watching two other players */
+.battle-watch {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 32px;
-  width: 100%;
-  margin: 16px 0;
-}
-
-.dealer-you {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.dealer-deck {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 8px;
+  padding: 8px 0;
+  flex: 1;
+}
+
+.battle-watch .bp {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+}
+
+.battle-watch .bp-opponent {
+  flex-direction: column;
+  align-items: center;
+}
+
+.battle-watch .bp-opponent .bp-info {
+  text-align: center;
+}
+
+.battle-watch .bp-opponent .bp-stats {
+  justify-content: center;
+}
+
+.battle-watch .bp-avatar,
+.battle-watch .bp-opponent .bp-avatar {
+  width: 36vw;
+  height: 36vw;
+  max-width: 180px;
+  max-height: 180px;
+  box-shadow: none;
+  border-color: var(--bg-surface);
+}
+
+.battle-watch .bp-initial,
+.battle-watch .bp-opponent .bp-initial {
+  font-size: 10vw;
+}
+
+.battle-watch .bp-name {
+  font-size: 13px;
+}
+
+.battle-watch-vs {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.battle-actions {
+  padding-top: 4px;
+  margin-bottom: 8px;
+}
+
+.battle-actions-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-battle {
+  flex: 1;
+  padding: 14px 12px;
+  font-size: 16px;
+}
+
+/* --- Battle Profile (compact horizontal) --- */
+
+.bp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bp-opponent {
+  flex-direction: row-reverse;
+}
+
+.bp-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid var(--bg-surface);
+}
+
+.bp-opponent .bp-avatar {
+  width: 200px;
+  height: 200px;
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.bp-avatar-video {
+  border-color: var(--green);
+}
+
+.bp-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.bp-you .bp-video {
+  transform: scaleX(-1);
+}
+
+.bp-initial {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-dim);
+}
+
+.bp-opponent .bp-initial {
+  font-size: 80px;
+}
+
+.bp-you-tag {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bp-opponent .bp-info {
+  text-align: right;
+}
+
+.bp-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bp-stats {
+  display: flex;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.bp-opponent .bp-stats {
+  justify-content: flex-end;
+}
+
+.bp-lives {
+  color: var(--red);
+}
+
+.bp-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
 }
 
 .deck-label {
