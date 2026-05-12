@@ -218,13 +218,187 @@ input.code-input {
   margin-top: 4px;
 }
 
-/* --- Player List --- */
+/* --- Camera Preview Screen --- */
 
-.player-list {
+.preview-screen {
+  justify-content: center;
+  gap: 20px;
+}
+
+.preview-title {
+  font-size: 18px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.preview-name {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.preview-video-container {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 3px solid var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.preview-loading {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.preview-error {
+  color: var(--gold);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}
+
+.preview-video-off {
+  border-color: var(--text-dim);
+}
+
+.preview-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-avatar span {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--text-dim);
+}
+
+.preview-controls {
+  display: flex;
+  gap: 24px;
+}
+
+.toggle-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-icon {
+  font-size: 24px;
+}
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.toggle-switch {
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  padding: 3px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.toggle-on {
+  background: var(--green);
+}
+
+.toggle-off {
+  background: var(--bg-surface);
+}
+
+.toggle-knob {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+}
+
+.toggle-on .toggle-knob {
+  transform: translateX(24px);
+}
+
+.toggle-off .toggle-knob {
+  transform: translateX(0);
+}
+
+/* Shared media toggle layouts */
+.media-toggles {
+  display: flex;
+}
+
+.media-toggles-row {
+  gap: 24px;
+  justify-content: center;
+}
+
+.media-toggles-compact {
+  gap: 8px;
+  align-items: center;
+}
+
+.media-toggles-compact .toggle-control {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.media-toggles-compact .toggle-icon {
+  font-size: 16px;
+}
+
+.media-toggles-compact .toggle-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.media-toggles-compact .toggle-knob {
+  width: 16px;
+  height: 16px;
+}
+
+.media-toggles-compact .toggle-on .toggle-knob {
+  transform: translateX(16px);
+}
+
+.preview-hint {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* --- Lobby Player Grid --- */
+
+.lobby-players {
   width: 100%;
 }
 
-.player-list h3 {
+.lobby-players h3 {
   color: var(--text-dim);
   font-size: 13px;
   text-transform: uppercase;
@@ -232,19 +406,82 @@ input.code-input {
   margin-bottom: 12px;
 }
 
-.player-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border-radius: 8px;
-  margin-bottom: 8px;
+.lobby-player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
 }
 
-.player-row.disconnected {
-  opacity: 0.5;
+.lobby-player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all 0.2s;
 }
+
+.lobby-player-card.disconnected {
+  opacity: 0.4;
+}
+
+.lobby-player-card.lobby-player-you {
+  border-color: var(--gold);
+}
+
+.lobby-player-video {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lobby-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lobby-player-you .lobby-video-feed {
+  transform: scaleX(-1);
+}
+
+.lobby-player-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lobby-player-avatar span {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-dim);
+}
+
+.lobby-player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lobby-player-name {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* --- Legacy Player List (keeping for reference) --- */
 
 .player-name {
   font-weight: 600;
@@ -453,22 +690,6 @@ input.code-input {
 
 .btn-media-off {
   opacity: 0.5;
-}
-
-.lobby-media-controls {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  width: 100%;
-}
-
-.lobby-media-controls .btn-media {
-  font-size: 14px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text);
-  border: 1px solid var(--bg-surface);
 }
 
 .btn-end-game {
@@ -788,6 +1009,24 @@ input.code-input {
   flex: 1;
 }
 
+.your-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.your-card-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  background: rgba(245, 197, 24, 0.1);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
 .trade-vs {
   font-size: 20px;
   font-weight: 900;
@@ -996,6 +1235,45 @@ input.code-input {
   padding: 4px 12px;
   background: var(--bg-card);
   border-radius: 6px;
+}
+
+/* Your personal outcome */
+.your-outcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  animation: outcomeIn 0.4s ease;
+}
+
+.your-outcome-safe {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.your-outcome-lost {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.your-outcome-icon {
+  font-size: 28px;
+}
+
+.your-outcome-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+@keyframes outcomeIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* Everyone safe */

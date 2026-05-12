@@ -9,6 +9,7 @@ import type {
 } from "../types/game";
 import { CardDisplay } from "./CardDisplay";
 import { MediaView } from "./MediaView";
+import { MediaToggles } from "./MediaToggles";
 import type { LiveKitState } from "../hooks/useLiveKit";
 
 interface GameViewProps {
@@ -261,20 +262,7 @@ export function GameView({
         {gameState.is_cowboy_round && <span className="cowboy-badge">🤠 COWBOY</span>}
         <span className="alive-count">{aliveLabel}</span>
         <div className="round-bar-controls">
-          <button
-            className={`btn-media ${livekit.isMuted ? "btn-media-off" : ""}`}
-            onClick={livekit.toggleMute}
-            title={livekit.isMuted ? "Unmute" : "Mute"}
-          >
-            {livekit.isMuted ? "🔇" : "🎤"}
-          </button>
-          <button
-            className={`btn-media ${livekit.isVideoOff ? "btn-media-off" : ""}`}
-            onClick={livekit.toggleVideo}
-            title={livekit.isVideoOff ? "Turn on camera" : "Turn off camera"}
-          >
-            {livekit.isVideoOff ? "📷" : "📹"}
-          </button>
+          <MediaToggles livekit={livekit} layout="compact" />
           {isHost && (
             <button
               className="btn-end-game"
@@ -391,7 +379,10 @@ export function GameView({
             {/* Your card and profile */}
             <div className="trade-side trade-you">
               <P player={myPlayer} isYou={true} size="large" glow="gold" />
-              <CardDisplay card={gameState.your_card} size="large" highlight />
+              <div className="your-card-wrapper">
+                <CardDisplay card={gameState.your_card} size="large" highlight />
+                <div className="your-card-tag">Your Card</div>
+              </div>
             </div>
 
             <div className="trade-vs">
@@ -440,7 +431,10 @@ export function GameView({
 
             <div className="trade-side trade-you">
               <P player={myPlayer} isYou={true} size="large" glow="gold" />
-              <CardDisplay card={gameState.your_card} size="large" highlight />
+              <div className="your-card-wrapper">
+                <CardDisplay card={gameState.your_card} size="large" highlight />
+                <div className="your-card-tag">Your Card</div>
+              </div>
             </div>
           </div>
 
@@ -508,7 +502,10 @@ export function GameView({
           <div className="dealer-stage">
             <div className="dealer-you">
               <P player={myPlayer} isYou={true} size="large" glow="gold" label="Dealer" />
-              <CardDisplay card={gameState.your_card} size="large" highlight />
+              <div className="your-card-wrapper">
+                <CardDisplay card={gameState.your_card} size="large" highlight />
+                <div className="your-card-tag">Your Card</div>
+              </div>
             </div>
             <div className="dealer-deck">
               <div className="deck-label">The Deck</div>
@@ -632,9 +629,47 @@ export function GameView({
   function RoundEndScene() {
     const everyoneExempted = !showdownInfo && gameState.is_cowboy_round;
 
+    // Figure out what happened to YOU this round
+    const youLost = showdownInfo?.losers.includes(playerId) ?? false;
+    const youExempted = showdownInfo
+      ? !showdownInfo.reveals.some(([id]) => id === playerId) && !myPlayer?.is_eliminated
+      : false;
+    const youSafe = showdownInfo && !youLost && !youExempted;
+    const youEliminated = myPlayer?.is_eliminated && youLost;
+
     return (
       <div className="scene-roundend">
         <div className="scene-label">Round {gameState.round_number} Results</div>
+
+        {/* Personal outcome banner */}
+        {showdownInfo && !everyoneExempted && (
+          <div className={`your-outcome ${youLost ? "your-outcome-lost" : "your-outcome-safe"}`}>
+            {youEliminated && (
+              <>
+                <span className="your-outcome-icon">💀</span>
+                <span className="your-outcome-text">You're out!</span>
+              </>
+            )}
+            {youLost && !youEliminated && (
+              <>
+                <span className="your-outcome-icon">💔</span>
+                <span className="your-outcome-text">You lost a life!</span>
+              </>
+            )}
+            {youExempted && (
+              <>
+                <span className="your-outcome-icon">⭐</span>
+                <span className="your-outcome-text">You exempted — safe!</span>
+              </>
+            )}
+            {youSafe && (
+              <>
+                <span className="your-outcome-icon">😎</span>
+                <span className="your-outcome-text">You survived!</span>
+              </>
+            )}
+          </div>
+        )}
 
         {everyoneExempted && (
           <div className="everyone-safe">

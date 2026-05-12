@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ClientMessage, LobbyState, PlayerId } from "../types/game";
 import type { LiveKitState } from "../hooks/useLiveKit";
 import { MediaView } from "./MediaView";
+import { MediaToggles } from "./MediaToggles";
 
 interface LobbyProps {
   lobbyState: LobbyState;
@@ -33,6 +34,11 @@ export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
     navigator.clipboard.writeText(lobbyState.code);
   };
 
+  const getMedia = (pid: PlayerId) => {
+    if (pid === playerId) return livekit.localMedia;
+    return livekit.participants.get(pid) ?? { audioTrack: null, videoTrack: null };
+  };
+
   return (
     <div className="screen lobby-screen">
       <div className="lobby-header">
@@ -43,22 +49,7 @@ export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
         </button>
       </div>
 
-      {livekit.connected && (
-        <div className="lobby-media-controls">
-          <button
-            className={`btn-media ${livekit.isMuted ? "btn-media-off" : ""}`}
-            onClick={livekit.toggleMute}
-          >
-            {livekit.isMuted ? "🔇 Muted" : "🎤 Mic On"}
-          </button>
-          <button
-            className={`btn-media ${livekit.isVideoOff ? "btn-media-off" : ""}`}
-            onClick={livekit.toggleVideo}
-          >
-            {livekit.isVideoOff ? "📷 Video Off" : "📹 Video On"}
-          </button>
-        </div>
-      )}
+      <MediaToggles livekit={livekit} layout="row" />
 
       {lobbyState.game_history.length > 0 && (
         <div className="last-winner-banner">
@@ -69,27 +60,49 @@ export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
         </div>
       )}
 
-      <div className="player-list">
+      <div className="lobby-players">
         <h3>
           Players ({connectedCount}/{lobbyState.players.length})
         </h3>
-        {lobbyState.players.map((p) => (
-          <div
-            key={p.id}
-            className={`player-row ${!p.is_connected ? "disconnected" : ""}`}
-          >
-            <span className="player-name">
-              {p.name}
-              {p.id === playerId && " (you)"}
-            </span>
-            <span className="player-badges">
-              {p.is_host && <span className="badge host">Host</span>}
-              {!p.is_connected && (
-                <span className="badge offline">Offline</span>
-              )}
-            </span>
-          </div>
-        ))}
+        <div className="lobby-player-grid">
+          {lobbyState.players.map((p) => {
+            const media = getMedia(p.id);
+            const isYou = p.id === playerId;
+            return (
+              <div
+                key={p.id}
+                className={`lobby-player-card ${!p.is_connected ? "disconnected" : ""} ${isYou ? "lobby-player-you" : ""}`}
+              >
+                <div className="lobby-player-video">
+                  {media.videoTrack ? (
+                    <MediaView
+                      videoTrack={media.videoTrack}
+                      audioTrack={isYou ? null : media.audioTrack}
+                      muted={isYou}
+                      className="lobby-video-feed"
+                    />
+                  ) : (
+                    <div className="lobby-player-avatar">
+                      <span>{p.name[0]}</span>
+                    </div>
+                  )}
+                  {/* Play audio even without video */}
+                  {!media.videoTrack && !isYou && media.audioTrack && (
+                    <MediaView videoTrack={null} audioTrack={media.audioTrack} />
+                  )}
+                </div>
+                <div className="lobby-player-info">
+                  <span className="lobby-player-name">
+                    {p.name}
+                    {isYou && " (you)"}
+                  </span>
+                  {p.is_host && <span className="badge host">Host</span>}
+                  {!p.is_connected && <span className="badge offline">Offline</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {isHost && (
@@ -169,11 +182,6 @@ export function Lobby({ lobbyState, playerId, send, livekit }: LobbyProps) {
           ))}
         </div>
       )}
-
-      {/* Play remote audio in lobby */}
-      {Array.from(livekit.participants.entries()).map(([pid, media]) => (
-        <MediaView key={pid} videoTrack={null} audioTrack={media.audioTrack} />
-      ))}
     </div>
   );
 }

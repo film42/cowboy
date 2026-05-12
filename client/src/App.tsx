@@ -3,9 +3,17 @@ import type { LobbyState } from "./types/game";
 import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { GameView } from "./components/GameView";
+import { CameraPreview } from "./components/CameraPreview";
+import type { MediaPrefs as CameraMediaPrefs } from "./components/CameraPreview";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useSession } from "./hooks/useSession";
 import { useLiveKit } from "./hooks/useLiveKit";
+
+interface PendingAction {
+  type: "create" | "join";
+  name: string;
+  code?: string;
+}
 
 function App() {
   const { session, saveSession, clearSession } = useSession();
@@ -14,6 +22,8 @@ function App() {
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [initialLobbyState, setInitialLobbyState] = useState<LobbyState | null>(null);
   const wasGameActive = useRef(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [mediaPrefs, setMediaPrefs] = useState<CameraMediaPrefs>({ camera: true, mic: true });
 
   const {
     lobbyState,
@@ -33,26 +43,23 @@ function App() {
   const currentPlayerId = playerId ?? session?.playerId ?? null;
   const effectiveLobbyState = lobbyState ?? initialLobbyState;
 
-  // Find the current player's name for LiveKit
   const currentPlayerName = effectiveLobbyState?.players.find(
     (p) => p.id === currentPlayerId
   )?.name ?? null;
 
-  // Connect to LiveKit when we're in a lobby
   const livekit = useLiveKit(
     session?.lobbyCode ?? null,
     currentPlayerId,
-    currentPlayerName
+    currentPlayerName,
+    mediaPrefs
   );
 
-  // Clear initialLobbyState once WS delivers real data
   useEffect(() => {
     if (lobbyState && initialLobbyState) {
       setInitialLobbyState(null);
     }
   }, [lobbyState, initialLobbyState]);
 
-  // Hold the game over screen for 5 seconds before returning to lobby
   useEffect(() => {
     if (effectiveLobbyState?.game_active) {
       wasGameActive.current = true;
@@ -74,45 +81,52 @@ function App() {
     }
   };
 
-  const handleCreateLobby = async (name: string) => {
-    setJoining(true);
-    try {
-      const res = await fetch("/api/lobby", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ host_name: name }),
-      });
-      if (!res.ok) throw new Error("Failed to create lobby");
-      const data = await res.json();
-      saveSession({
-        lobbyCode: data.code,
-        playerId: data.player_id,
-        sessionToken: data.session_token,
-      });
-      await fetchLobbyState(data.code);
-    } catch {
-      clearError();
-    } finally {
-      setJoining(false);
-    }
+  // Home screen handlers just set the pending action → show camera preview
+  const handleCreateLobby = (name: string) => {
+    setPendingAction({ type: "create", name });
   };
 
-  const handleJoinLobby = async (code: string, name: string) => {
+  const handleJoinLobby = (code: string, name: string) => {
+    setPendingAction({ type: "join", name, code });
+  };
+
+  // After camera preview confirmation, actually create/join
+  const handlePreviewConfirm = async (prefs: CameraMediaPrefs) => {
+    if (!pendingAction) return;
+    setMediaPrefs(prefs);
     setJoining(true);
+    setPendingAction(null);
+
     try {
-      const res = await fetch(`/api/lobby/${code}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error("Failed to join lobby");
-      const data = await res.json();
-      saveSession({
-        lobbyCode: code,
-        playerId: data.player_id,
-        sessionToken: data.session_token,
-      });
-      await fetchLobbyState(code);
+      if (pendingAction.type === "create") {
+        const res = await fetch("/api/lobby", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ host_name: pendingAction.name }),
+        });
+        if (!res.ok) throw new Error("Failed to create lobby");
+        const data = await res.json();
+        saveSession({
+          lobbyCode: data.code,
+          playerId: data.player_id,
+          sessionToken: data.session_token,
+        });
+        await fetchLobbyState(data.code);
+      } else {
+        const res = await fetch(`/api/lobby/${pendingAction.code}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: pendingAction.name }),
+        });
+        if (!res.ok) throw new Error("Failed to join lobby");
+        const data = await res.json();
+        saveSession({
+          lobbyCode: pendingAction.code!,
+          playerId: data.player_id,
+          sessionToken: data.session_token,
+        });
+        await fetchLobbyState(pendingAction.code!);
+      }
     } catch {
       clearError();
     } finally {
@@ -132,6 +146,20 @@ function App() {
     clearSession();
   };
 
+  // Camera preview step
+  if (pendingAction) {
+    return (
+      <div className="app">
+        <CameraPreview
+          name={pendingAction.name}
+          onConfirm={handlePreviewConfirm}
+          onBack={() => setPendingAction(null)}
+        />
+        {joining && <div className="loading-overlay">Joining...</div>}
+      </div>
+    );
+  }
+
   // No session: home screen
   if (!session) {
     return (
@@ -140,7 +168,6 @@ function App() {
           onCreateLobby={handleCreateLobby}
           onJoinLobby={handleJoinLobby}
         />
-        {joining && <div className="loading-overlay">Connecting...</div>}
       </div>
     );
   }

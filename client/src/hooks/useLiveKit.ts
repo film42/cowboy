@@ -21,17 +21,23 @@ export interface LiveKitState {
   isVideoOff: boolean;
 }
 
+export interface MediaPrefs {
+  camera: boolean;
+  mic: boolean;
+}
+
 export function useLiveKit(
   lobbyCode: string | null,
   playerId: PlayerId | null,
-  playerName: string | null
+  playerName: string | null,
+  mediaPrefs: MediaPrefs = { camera: true, mic: true }
 ): LiveKitState {
   const roomRef = useRef<Room | null>(null);
   const [connected, setConnected] = useState(false);
   const [participants, setParticipants] = useState<Map<PlayerId, ParticipantMedia>>(new Map());
   const [localMedia, setLocalMedia] = useState<ParticipantMedia>({ audioTrack: null, videoTrack: null });
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isMuted, setIsMuted] = useState(!mediaPrefs.mic);
+  const [isVideoOff, setIsVideoOff] = useState(!mediaPrefs.camera);
 
   const updateParticipants = useCallback((room: Room) => {
     const map = new Map<PlayerId, ParticipantMedia>();
@@ -131,8 +137,8 @@ export function useLiveKit(
 
         await room.connect(livekitUrl, token);
 
-        await room.localParticipant.setMicrophoneEnabled(true);
-        await room.localParticipant.setCameraEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(mediaPrefs.mic);
+        await room.localParticipant.setCameraEnabled(mediaPrefs.camera);
         updateLocalMedia(room);
       } catch (err) {
         console.error("LiveKit connection failed:", err);
