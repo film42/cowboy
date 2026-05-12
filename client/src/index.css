@@ -1008,26 +1008,32 @@ input.code-input {
 }
 
 .battle-banner-prompt {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--gold);
-  padding: 10px 0;
+  padding: 8px 16px;
   margin: -12px -16px 12px -16px;
   background: rgba(245, 197, 24, 0.06);
   border-bottom: 1px solid rgba(245, 197, 24, 0.15);
 }
 
 .battle-banner-alert {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--white);
   background: var(--red);
-  padding: 10px 0;
+  padding: 8px 16px;
   margin: -12px -16px 12px -16px;
   animation: bannerPulse 1.5s ease infinite alternate;
 }
@@ -1278,6 +1284,14 @@ input.code-input {
   align-items: center;
   width: 100%;
   flex: 1;
+}
+
+.cowboy-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
 }
 
 .cowboy-prompt {
@@ -1650,6 +1664,46 @@ input.code-input {
     transform: translateX(0) rotateY(0deg) scale(1);
     opacity: 1;
   }
+}
+
+/* Countdown ring */
+.countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.countdown-ring {
+  width: 100%;
+  height: 100%;
+}
+
+.countdown-ring-bg {
+  stroke: var(--bg-surface);
+}
+
+.countdown-ring-fill {
+  stroke: var(--green);
+  transition: stroke-dasharray 1s linear;
+}
+
+.countdown-urgent .countdown-ring-fill {
+  stroke: var(--red);
+}
+
+.countdown-num {
+  position: absolute;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.countdown-urgent .countdown-num {
+  color: var(--red);
 }
 
 /* Announcement overlay */

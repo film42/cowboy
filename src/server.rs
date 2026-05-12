@@ -439,6 +439,88 @@ fn maybe_spawn_cowboy_timer(lobby_arc: &Arc<RwLock<crate::lobby::Lobby>>) {
     });
 }
 
+/// Spawn a 30-second timer for the current player's turn.
+/// Auto-defaults: Pass for normal turn, AcceptTrade for block, DealerPass for dealer.
+fn maybe_spawn_turn_timer(lobby_arc: &Arc<RwLock<crate::lobby::Lobby>>) {
+    let lobby_clone = lobby_arc.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+        // Snapshot who's acting and what phase
+        let (actor_id, phase_tag) = {
+            let lobby = lobby_clone.read().await;
+            let game = match lobby.game.as_ref() {
+                Some(g) => g,
+                None => return,
+            };
+            let actor = match game.current_actor() {
+                Some(a) => a,
+                None => return,
+            };
+            let tag = match &game.phase {
+                Phase::NormalTurn { .. } => "normal",
+                Phase::WaitingForBlock { .. } => "block",
+                Phase::DealerTurn => "dealer",
+                _ => return,
+            };
+            (actor, tag)
+        };
+
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+
+        let mut lobby = lobby_clone.write().await;
+        let game = match lobby.game.as_mut() {
+            Some(g) => g,
+            None => return,
+        };
+
+        // Only act if the same player is still the actor in the same type of phase
+        let still_waiting = game.current_actor() == Some(actor_id)
+            && match (&game.phase, phase_tag) {
+                (Phase::NormalTurn { .. }, "normal") => true,
+                (Phase::WaitingForBlock { .. }, "block") => true,
+                (Phase::DealerTurn, "dealer") => true,
+                _ => false,
+            };
+
+        if !still_waiting {
+            return;
+        }
+
+        let default_action = match phase_tag {
+            "normal" => crate::game::Action::Pass,
+            "block" => crate::game::Action::AcceptTrade,
+            "dealer" => crate::game::Action::DealerPass,
+            _ => return,
+        };
+
+        info!("Turn timer expired for player {actor_id}, auto-defaulting");
+        if game.act(actor_id, default_action).is_ok() {
+            let mut events = game.take_events();
+
+            // If all cowboy votes are in after this action, resolve
+            if game.all_cowboy_votes_in() {
+                if game.act(0, crate::game::Action::ResolveCowboyVote).is_ok() {
+                    events.extend(game.take_events());
+                }
+            }
+
+            let game_over_winner = match &game.phase {
+                Phase::GameOver { winner } => *winner,
+                _ => None,
+            };
+
+            let _ = lobby.tx.send(ServerMessage::GameEvents { events });
+
+            if let Some(wid) = game_over_winner {
+                lobby.record_game_result(wid);
+                let state = lobby.lobby_state();
+                let _ = lobby.tx.send(ServerMessage::LobbyUpdate { state });
+            }
+        }
+    });
+}
+
 async fn handle_client_message(
     lobby: &Arc<RwLock<crate::lobby::Lobby>>,
     player_id: PlayerId,
@@ -472,6 +554,11 @@ async fn handle_client_message(
                         maybe_spawn_cowboy_timer(lobby);
                         return;
                     }
+
+                    // Start turn timer for the first player
+                    drop(lobby_guard);
+                    maybe_spawn_turn_timer(lobby);
+                    return;
                 }
                 Err(e) => {
                     let _ = lobby_guard.tx.send(ServerMessage::Error { message: e });
@@ -503,14 +590,13 @@ async fn handle_client_message(
                     }
 
                     let game_over = matches!(game.phase, Phase::GameOver { .. });
-                    let winner_id = if let Phase::GameOver { winner } = &game.phase {
-                        *winner
-                    } else {
-                        None
+                    let winner_id = match &game.phase {
+                        Phase::GameOver { winner } => *winner,
+                        _ => None,
                     };
                     let in_cowboy = matches!(game.phase, Phase::CowboyVote { .. });
+                    let has_actor = game.current_actor().is_some();
 
-                    // Broadcast events
                     let _ = lobby_guard.tx.send(ServerMessage::GameEvents { events });
 
                     if game_over {
@@ -524,6 +610,12 @@ async fn handle_client_message(
                     if in_cowboy {
                         drop(lobby_guard);
                         maybe_spawn_cowboy_timer(lobby);
+                        return;
+                    }
+
+                    if has_actor && !game_over {
+                        drop(lobby_guard);
+                        maybe_spawn_turn_timer(lobby);
                         return;
                     }
                 }

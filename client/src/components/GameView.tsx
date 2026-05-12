@@ -10,6 +10,7 @@ import type {
 import { CardDisplay } from "./CardDisplay";
 import { MediaView } from "./MediaView";
 import { MediaToggles } from "./MediaToggles";
+import { Countdown } from "./Countdown";
 import type { LiveKitState } from "../hooks/useLiveKit";
 
 interface GameViewProps {
@@ -310,8 +311,10 @@ export function GameView({
       {/* Top bar */}
       <div className="round-bar">
         <span className="round-number">Round {gameState.round_number}</span>
-        {gameState.is_cowboy_round && <span className="cowboy-badge">🤠 COWBOY</span>}
-        <span className="alive-count">{aliveLabel}</span>
+        {gameState.is_cowboy_round
+          ? <span className="cowboy-badge">🤠 COWBOY</span>
+          : <span className="alive-count">{aliveLabel}</span>
+        }
         <div className="round-bar-controls">
           <MediaToggles livekit={livekit} layout="compact" />
           {isHost && (
@@ -424,7 +427,10 @@ export function GameView({
 
       return (
         <div className="battle">
-          <div className="battle-banner-prompt">Want to trade with {target.name}?</div>
+          <div className="battle-banner-prompt">
+            <span>Want to trade with {target.name}?</span>
+            <Countdown seconds={30} resetKey={`turn-${gameState.round_number}-${playerId}`} />
+          </div>
 
           <div className="battle-opponent">
             <BattleProfile player={target} playerId={playerId} getMedia={getMedia} />
@@ -459,7 +465,10 @@ export function GameView({
     if (isTradeProposed && isMyTurn) {
       return (
         <div className="battle">
-          <div className="battle-banner-alert">Trade Incoming!</div>
+          <div className="battle-banner-alert">
+            <span>Trade Incoming!</span>
+            <Countdown seconds={30} resetKey={`block-${gameState.round_number}-${playerId}`} />
+          </div>
 
           <div className="battle-opponent">
             <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} label="wants your card" />
@@ -548,6 +557,11 @@ export function GameView({
     if (isMyTurn) {
       return (
         <div className="battle">
+          <div className="battle-banner-prompt">
+            <span>Keep or take off the top?</span>
+            <Countdown seconds={30} resetKey={`dealer-${gameState.round_number}`} />
+          </div>
+
           <div className="battle-opponent">
             <div className="deck-stack">
               <CardDisplay card={null} faceDown size="medium" />
@@ -609,7 +623,12 @@ export function GameView({
 
     return (
       <div className="scene-cowboy">
-        <div className="scene-label scene-label-cowboy">🤠 Cowboy Round</div>
+        <div className="cowboy-header">
+          <div className="scene-label scene-label-cowboy">🤠 Cowboy Round</div>
+          {!cowboyVoted && !isEliminated && (
+            <Countdown seconds={30} resetKey={`cowboy-${gameState.round_number}`} />
+          )}
+        </div>
         <div className="cowboy-prompt">
           {gameState.is_cowboy_round && (
             <p className="cowboy-explain">
