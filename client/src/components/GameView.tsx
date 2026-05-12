@@ -57,17 +57,14 @@ function PlayerProfile({
         {hasVideo ? (
           <MediaView
             videoTrack={videoTrack ?? null}
-            audioTrack={isYou ? null : (audioTrack ?? null)}
-            muted={isYou}
+            audioTrack={null}
+            muted
             className="profile-video-feed"
           />
         ) : (
           <span className="profile-initial">{player.name[0]}</span>
         )}
         {/* Play remote audio even without video */}
-        {!hasVideo && !isYou && audioTrack && (
-          <MediaView videoTrack={null} audioTrack={audioTrack} />
-        )}
       </div>
       <div className="profile-info">
         <div className="profile-name">
@@ -118,15 +115,12 @@ function BattleProfile({
         {hasVideo ? (
           <MediaView
             videoTrack={media.videoTrack}
-            audioTrack={isYou ? null : media.audioTrack}
-            muted={isYou}
+            audioTrack={null}
+            muted
             className="bp-video"
           />
         ) : (
           <span className="bp-initial">{player.name[0]}</span>
-        )}
-        {!hasVideo && !isYou && media.audioTrack && (
-          <MediaView videoTrack={null} audioTrack={media.audioTrack} />
         )}
       </div>
       <div className="bp-info">
@@ -371,6 +365,11 @@ export function GameView({
           );
         })}
       </div>
+
+      {/* Always play all remote audio */}
+      {Array.from(livekit.participants.entries()).map(([pid, media]) => (
+        media.audioTrack ? <MediaView key={`audio-${pid}`} videoTrack={null} audioTrack={media.audioTrack} /> : null
+      ))}
 
       {/* Main scene area */}
       <div className="scene">
