@@ -767,9 +767,11 @@ input.code-input {
 .battle-waiting-text { text-align: center; font-size: 14px; font-weight: 600; color: var(--text-dim); font-style: italic; }
 
 .battle-watch { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 0; flex: 1; }
-.battle-watch .bp { flex: 1; flex-direction: column; align-items: center; }
-.battle-watch .bp-opponent { flex-direction: column; align-items: center; }
-.battle-watch .bp-opponent .bp-info { text-align: center; }
+.battle-watch .bp,
+.battle-watch .bp-opponent { flex: 1; flex-direction: column; align-items: center; height: auto; }
+.battle-watch .bp .bp-info,
+.battle-watch .bp-opponent .bp-info { text-align: center; align-self: center; }
+.battle-watch .bp .bp-stats,
 .battle-watch .bp-opponent .bp-stats { justify-content: center; }
 .battle-watch .bp-avatar, .battle-watch .bp-opponent .bp-avatar { width: 36vw; height: 36vw; max-width: 160px; max-height: 160px; box-shadow: none; border-color: var(--border); }
 .battle-watch .bp-initial, .battle-watch .bp-opponent .bp-initial { font-size: 10vw; }

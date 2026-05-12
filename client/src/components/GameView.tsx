@@ -542,10 +542,18 @@ export function GameView({
     const nextIdx = (actorIdx + 1) % watchTarget.length;
     const nextPlayer = watchTarget[nextIdx];
 
+    const bannerText = isTradeProposed
+      ? `${actorPlayer.name} wants to trade with ${nextPlayer.name}`
+      : `${actorPlayer.name} is deciding...`;
+
     return (
       <div className="battle">
+        <div className="battle-banner-prompt">
+          <span>{bannerText}</span>
+        </div>
+
         <div className="battle-watch">
-          <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} label={isTradeProposed ? "trading" : "deciding..."} />
+          <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} />
           <div className="battle-watch-vs">vs</div>
           <BattleProfile player={nextPlayer} playerId={playerId} getMedia={getMedia} />
         </div>
