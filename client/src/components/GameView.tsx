@@ -37,7 +37,6 @@ function PlayerProfile({
   glow,
   label,
   videoTrack,
-  audioTrack,
   children,
 }: {
   player: PlayerPublicState;
@@ -46,7 +45,6 @@ function PlayerProfile({
   glow?: "gold" | "red" | "green" | "accent";
   label?: string;
   videoTrack?: MediaStreamTrack | null;
-  audioTrack?: MediaStreamTrack | null;
   children?: React.ReactNode;
 }) {
   const hasVideo = !!videoTrack;
@@ -178,9 +176,9 @@ export function GameView({
   };
 
   // Wrapper that auto-injects media tracks into PlayerProfile
-  function P(props: Omit<Parameters<typeof PlayerProfile>[0], "videoTrack" | "audioTrack">) {
+  function P(props: Omit<Parameters<typeof PlayerProfile>[0], "videoTrack">) {
     const media = getMedia(props.player.id);
-    return <PlayerProfile {...props} videoTrack={media.videoTrack} audioTrack={media.audioTrack} />;
+    return <PlayerProfile {...props} videoTrack={media.videoTrack} />;
   }
 
   // Reset vote state when phase changes away from cowboy_vote
