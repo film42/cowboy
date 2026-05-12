@@ -703,11 +703,15 @@ input.code-input {
 
 .battle-opponent {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  align-self: flex-end;
+  align-self: stretch;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 12px;
   animation: slideInRight 0.25s ease;
 }
+
 
 @keyframes slideInRight { from { transform: translateX(16px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
@@ -778,7 +782,7 @@ input.code-input {
 /* --- Battle Profile --- */
 
 .bp { display: flex; align-items: center; gap: 8px; }
-.bp-opponent { flex-direction: row-reverse; }
+.bp-opponent { flex-direction: row-reverse; align-items: flex-start; gap: 12px; flex: 1; min-width: 0; height: 100%; }
 
 .bp-avatar {
   width: 56px;
@@ -794,38 +798,82 @@ input.code-input {
 }
 
 .bp-opponent .bp-avatar {
-  width: 200px;
-  height: 200px;
+  height: 100%;
+  width: auto;
+  min-height: 140px;
+  max-height: 40vh;
+  max-width: calc(100% - 80px);
+  aspect-ratio: 3 / 4;
   border-color: var(--gold);
+  border-radius: 14px;
+  flex-shrink: 1;
 }
 
 .bp-avatar-video { border-color: var(--green); }
 
-.bp-video { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.bp-video { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .bp-you .bp-video { transform: scaleX(-1); }
 
 .bp-initial { font-size: 22px; font-weight: 800; color: var(--border); }
-.bp-opponent .bp-initial { font-size: 72px; color: var(--bg-surface); }
+.bp-opponent .bp-initial { font-size: 48px; color: var(--bg-surface); }
 
 .bp-you-tag { color: var(--gold); font-size: 10px; font-weight: 700; }
 
 .bp-info { display: flex; flex-direction: column; gap: 1px; }
-.bp-opponent .bp-info { text-align: right; }
+.bp-opponent .bp-info { text-align: right; flex-shrink: 0; align-self: flex-start; }
 .bp-name { font-size: 14px; font-weight: 700; }
 .bp-stats { display: flex; gap: 3px; font-size: 11px; }
 .bp-opponent .bp-stats { justify-content: flex-end; }
 .bp-lives { color: var(--red); }
 .bp-label { font-size: 10px; color: var(--text-dim); font-style: italic; }
 
+.battle-deck-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  align-self: flex-end;
+  flex: 1;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+  animation: slideInRight 0.25s ease;
+}
+
+.battle-deck-area .deck-stack .card {
+  width: 40vw;
+  height: 53vw;
+  max-width: 180px;
+  max-height: 240px;
+  border-radius: 14px;
+  font-size: 40px;
+}
+
 .deck-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); }
-.deck-stack { position: relative; }
-.deck-stack::before {
+
+.deck-stack {
+  position: relative;
+}
+
+.deck-stack::before,
+.deck-stack::after {
   content: "";
   position: absolute;
-  top: 2px; left: 2px; right: -2px; bottom: -2px;
-  background: linear-gradient(135deg, #8b3a3a, #5c2020);
-  border-radius: 10px;
-  opacity: 0.4;
+  inset: 0;
+  background: linear-gradient(145deg, #994433, #663322);
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+}
+
+.deck-stack::before {
+  transform: translate(3px, 3px);
+  z-index: -1;
+  opacity: 0.5;
+}
+
+.deck-stack::after {
+  transform: translate(6px, 6px);
+  z-index: -2;
+  opacity: 0.25;
 }
 
 /* --- Cowboy Vote --- */

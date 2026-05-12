@@ -575,7 +575,7 @@ export function GameView({
             <Countdown seconds={30} resetKey={`dealer-${gameState.round_number}`} />
           </div>
 
-          <div className="battle-opponent">
+          <div className="battle-deck-area">
             <div className="deck-stack">
               <CardDisplay card={null} faceDown size="medium" />
             </div>
@@ -610,16 +610,20 @@ export function GameView({
     // Watching the dealer
     return (
       <div className="battle">
+        <div className="battle-banner-prompt">
+          <span>Will {dealerPlayer.name} take off the top?</span>
+        </div>
+
         <div className="battle-opponent">
           <BattleProfile player={dealerPlayer} playerId={playerId} getMedia={getMedia} label="Dealer" />
-          <div className="deck-stack">
-            <CardDisplay card={null} faceDown size="small" />
+          <div className="deck-stack" style={{ alignSelf: "center" }}>
+            <CardDisplay card={null} faceDown size="medium" />
           </div>
         </div>
 
         <div className="battle-you">
-          <CardDisplay card={gameState.your_card} size="medium" />
-          <div className="battle-you-label">Your Card</div>
+          <CardDisplay card={gameState.your_card} size="small" />
+          <BattleProfile player={myPlayer!} playerId={playerId} getMedia={getMedia} isYou />
         </div>
       </div>
     );
