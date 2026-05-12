@@ -166,6 +166,7 @@ export function GameView({
   const [showdownInfo, setShowdownInfo] = useState<ShowdownInfo | null>(null);
   const [cowboyVoted, setCowboyVoted] = useState(false);
   const [deckReveal, setDeckReveal] = useState<{ card: Card; dealerName: string } | null>(null);
+  const [traderId, setTraderId] = useState<PlayerId | null>(null);
   const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
@@ -194,6 +195,9 @@ export function GameView({
   useEffect(() => {
     if (phase !== "cowboy_vote") {
       setCowboyVoted(false);
+    }
+    if (phase !== "waiting_for_block") {
+      setTraderId(null);
     }
     // Clear stale announcements when a new round starts or new game begins
     if (phase === "normal_turn" || phase === "dealer_turn" || phase === "cowboy_vote") {
@@ -231,6 +235,9 @@ export function GameView({
           break;
         case "EveryoneExempted":
           showAnnouncement("Everyone exempted!", "No one loses a life", 2500);
+          break;
+        case "TradeProposed":
+          setTraderId(event.from_id);
           break;
         case "TradeBlocked": {
           const blocker = getPlayer(event.blocker_id);
@@ -466,6 +473,9 @@ export function GameView({
     }
 
     if (isTradeProposed && isMyTurn) {
+      const traderPlayer = traderId ? getPlayer(traderId) : null;
+      if (!traderPlayer) return null;
+
       return (
         <div className="battle">
           <div className="battle-banner-alert">
@@ -474,7 +484,7 @@ export function GameView({
           </div>
 
           <div className="battle-opponent">
-            <BattleProfile player={actorPlayer} playerId={playerId} getMedia={getMedia} label="wants your card" />
+            <BattleProfile player={traderPlayer} playerId={playerId} getMedia={getMedia} label="wants your card" />
             <CardDisplay card={null} faceDown size="small" />
           </div>
 
